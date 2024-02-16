@@ -11,7 +11,6 @@
 #include "pxr/imaging/hgiVulkan/hgi.h"
 #include "pxr/imaging/hgiVulkan/instance.h"
 #include "pxr/imaging/hgiVulkan/pipelineCache.h"
-#include "pxr/imaging/hgiVulkan/vk_mem_alloc.h"
 
 #include "pxr/base/tf/diagnostic.h"
 
@@ -42,16 +41,34 @@ _GetGraphicsQueueFamilyIndex(VkPhysicalDevice physicalDevice)
 
 static bool
 _SupportsPresentation(
+    HgiVulkanInstance* instance,
     VkPhysicalDevice physicalDevice,
     uint32_t familyIndex)
 {
+    // XXX With volk, these functions weren't loaded correctly for me (would 
+    // crash when called). Loading them like this seems to work. Unsure why.
     #if defined(VK_USE_PLATFORM_WIN32_KHR)
+        VkInstance vkInstance = instance->GetVulkanInstance();
+        PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR
+            vkGetPhysicalDeviceWin32PresentationSupportKHR = 
+                (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)
+                vkGetInstanceProcAddr(
+                    vkInstance,
+                    "vkGetPhysicalDeviceWin32PresentationSupportKHR");
         return vkGetPhysicalDeviceWin32PresentationSupportKHR(
                     physicalDevice, familyIndex);
     #elif defined(VK_USE_PLATFORM_XLIB_KHR)
         Display* dsp = XOpenDisplay(nullptr);
         VisualID visualID = XVisualIDFromVisual(
             DefaultVisual(dsp, DefaultScreen(dsp)));
+        
+        VkInstance vkInstance = instance->GetVulkanInstance();
+        PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR
+            vkGetPhysicalDeviceXlibPresentationSupportKHR = 
+                (PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR)
+                vkGetInstanceProcAddr(
+                    vkInstance,
+                    "vkGetPhysicalDeviceXlibPresentationSupportKHR");
         return vkGetPhysicalDeviceXlibPresentationSupportKHR(
                     physicalDevice, familyIndex, dsp, visualID);
     #elif defined(VK_USE_PLATFORM_METAL_EXT)
@@ -94,7 +111,7 @@ HgiVulkanDevice::HgiVulkanDevice(HgiVulkanInstance* instance)
         if (familyIndex == VK_QUEUE_FAMILY_IGNORED) continue;
 
         // Assume we always want a presentation capable device for now.
-        if (!_SupportsPresentation(physicalDevices[i], familyIndex)) {
+        if (!_SupportsPresentation(instance, physicalDevices[i], familyIndex)) {
             continue;
         }
 
@@ -289,6 +306,8 @@ HgiVulkanDevice::HgiVulkanDevice(HgiVulkanInstance* instance)
             HgiVulkanAllocator(),
             &_vkDevice)
     );
+
+    volkLoadDevice(_vkDevice);
 
     HgiVulkanSetupDeviceDebug(instance, this);
 
