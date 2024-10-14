@@ -3420,46 +3420,43 @@ _UpdateRmanAovAndSourceName(
 
     // If the sourceType hints that the source is an lpe or primvar, make sure
     // it starts with "lpe:" or "primvars:" as required by prman.
-    if(sourceType == "lpe")
-    {
+    if(sourceType == "lpe") {
         std::string sn = rmanSourceName->CStr();
         if(sn.rfind("lpe:", 0) == std::string::npos)
             sn = "lpe:" + sn;
         *rmanSourceName = RtUString(sn.c_str());
-    }
-    else if(sourceType == "primvar")
-    {
+    } else if(sourceType == "primvar") {
         std::string sn = rmanSourceName->CStr();
         if(sn.rfind("primvars:", 0) == std::string::npos)
             sn = "primvars:" + sn;
         *rmanSourceName = RtUString(sn.c_str());
     }
 
-    // Update the Aov and Source names by mapping the HdAovName to an 
-    // equivalent Prman name
-    if (hdAovName == HdAovTokens->color || hdAovName.GetString() == "ci") {
-        *rmanAovName = RixStr.k_Ci;
-        *rmanSourceName = RixStr.k_Ci;
-    } else if (hdAovName == HdAovTokens->depth) {
-        *rmanSourceName = RixStr.k_z;
-    } else if (hdAovName == HdAovTokens->normal) {
-        *rmanSourceName= RixStr.k_Nn;
-    } else if (hdAovName == HdAovTokens->primId) {
-        *rmanAovName = RixStr.k_id;
-        *rmanSourceName = RixStr.k_id;
-    } else if (hdAovName == HdAovTokens->instanceId) {
-        *rmanAovName = RixStr.k_id2;
-        *rmanSourceName = RixStr.k_id2;
-    } else if (hdAovName == HdAovTokens->elementId) {
-        *rmanAovName = RixStr.k_faceindex;
-        *rmanSourceName = RixStr.k_faceindex;
-    } else if (*rmanAovName == us_primvars_st) {
-        *rmanSourceName = us_st;
-    }
-
-    // If no sourceName is specified, assume name is a standard prman aov
-    if (rmanSourceName->Empty()) {
-        *rmanSourceName = *rmanAovName;
+    if(rmanSourceName->Empty()) {
+        // Update the Aov and Source names by mapping the HdAovName to an 
+        // equivalent Prman name
+        if (hdAovName == HdAovTokens->color || hdAovName.GetString() == "ci") {
+            *rmanAovName = RixStr.k_Ci;
+            *rmanSourceName = RixStr.k_Ci;
+        } else if (hdAovName == HdAovTokens->depth) {
+            *rmanSourceName = RixStr.k_z;
+        } else if (hdAovName == HdAovTokens->normal) {
+            *rmanSourceName= RixStr.k_Nn;
+        } else if (hdAovName == HdAovTokens->primId) {
+            *rmanAovName = RixStr.k_id;
+            *rmanSourceName = RixStr.k_id;
+        } else if (hdAovName == HdAovTokens->instanceId) {
+            *rmanAovName = RixStr.k_id2;
+            *rmanSourceName = RixStr.k_id2;
+        } else if (hdAovName == HdAovTokens->elementId) {
+            *rmanAovName = RixStr.k_faceindex;
+            *rmanSourceName = RixStr.k_faceindex;
+        } else if (*rmanAovName == us_primvars_st) {
+            *rmanSourceName = us_st;
+        } else {
+            // If no sourceName is specified, assume name is a standard prman aov
+            *rmanSourceName = *rmanAovName;
+        }
     }
 }
 
