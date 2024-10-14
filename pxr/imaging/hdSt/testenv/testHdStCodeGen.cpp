@@ -60,8 +60,7 @@ TF_DEFINE_PRIVATE_TOKENS(
 );
 
 static bool
-CodeGenTest(HdSt_ShaderKey const &key, bool useBindlessBuffer,
-            bool instance, bool smoothNormals)
+CodeGenTest(HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
 {
     TfErrorMark mark;
 
@@ -300,11 +299,10 @@ CodeGenTest(HdSt_ShaderKey const &key, bool useBindlessBuffer,
 }
 
 bool
-TestShader(HdSt_ShaderKey const &key, bool bindless, 
-           bool instance, bool smoothNormals)
+TestShader(HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
 {
     bool success = true;
-    success &= CodeGenTest(key, bindless, instance, smoothNormals);
+    success &= CodeGenTest(key, instance, smoothNormals);
     return success;
 }
 
@@ -324,7 +322,6 @@ int main(int argc, char *argv[])
     bool mesh = false;
     bool curves = false;
     bool points = false;
-    bool bindless = false;
     HdMeshGeomStyle geomStyle = HdMeshGeomStyleSurf;
 
     for (int i=0; i<argc; ++i) {
@@ -340,8 +337,6 @@ int main(int argc, char *argv[])
             blendWireframeColor = true;
         } else if (arg == "--instance") {
             instance = true;
-        } else if (arg == "--bindless") {
-            bindless = true;
         } else if (arg == "--mesh") {
             mesh = true;
         } else if (arg == "--curves") {
@@ -379,7 +374,7 @@ int main(int argc, char *argv[])
                 /* isWidget */ false,
                 /* forceOpaqueEdges */ true,
                 /* surfaceEdgeIds */ true),
-                bindless, instance, smoothNormals);
+                instance, smoothNormals);
         success &= TestShader(
             HdSt_MeshShaderKey(
                 HdSt_GeometricShader::PrimitiveType::PRIM_MESH_COARSE_QUADS, 
@@ -403,7 +398,7 @@ int main(int argc, char *argv[])
                 /* isWidget */ false,
                 /* forceOpaqueEdges */ true,
                 /* surfaceEdgeIds */ true),
-                bindless, instance, smoothNormals);
+                instance, smoothNormals);
     }
 
     // curves
@@ -417,13 +412,13 @@ int main(int argc, char *argv[])
                             HdBasisCurvesReprDescTokens->surfaceShader,
                             topologicalVisibility,
                             /* isWidget */ false, false),
-                            bindless, instance, false);
+                            instance, false);
     }
 
     // points
     if (points) {
         success &= TestShader(HdSt_PointsShaderKey(),
-                              bindless, instance, false);
+                              instance, false);
     }
 
     if (success) {
