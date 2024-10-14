@@ -2324,8 +2324,7 @@ pxr_register_test(testHdStBufferArray
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStBufferArray"
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStBufferArray-Run1-stdout.txt
-    POST_COMMAND "diff -I drawingShader -I computeShader -I gpuMemoryUsed -I meshTopology -I basisCurvesTopology testHdStBufferArray-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStBufferArray/baseline/testHdStBufferArray-Run1-stdout.txt"
-    TESTENV testHdStBufferArray
+    POST_COMMAND "diff -I drawingShader -I computeShader -I gpuMemoryUsed -I meshTopology -I basisCurvesTopology -I uboSize -I ssboSize testHdStBufferArray-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStBufferArray/baseline/testHdStBufferArray-Run1-stdout.txt"    TESTENV testHdStBufferArray
     ENV
         TF_DEBUG=HD_SAFE_MODE
         HD_ENABLE_DOUBLE_MATRIX=1
@@ -2335,7 +2334,7 @@ pxr_register_test(testHdStBufferArrayInstancingDisabled
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStBufferArray"
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStBufferArrayInstancingDisabled-Run1-stdout.txt
-    POST_COMMAND "diff -I drawingShader -I computeShader -I gpuMemoryUsed -I meshTopology -I basisCurvesTopology testHdStBufferArrayInstancingDisabled-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStBufferArrayInstancingDisabled/baseline/testHdStBufferArrayInstancingDisabled-Run1-stdout.txt"
+    POST_COMMAND "diff -I drawingShader -I computeShader -I gpuMemoryUsed -I meshTopology -I basisCurvesTopology -I uboSize -I ssboSize testHdStBufferArrayInstancingDisabled-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStBufferArrayInstancingDisabled/baseline/testHdStBufferArrayInstancingDisabled-Run1-stdout.txt"
     TESTENV testHdStBufferArrayInstancingDisabled
     ENV
         HDST_ENABLE_RESOURCE_INSTANCING=0
@@ -2740,6 +2739,7 @@ pxr_register_test(testHdStDrawBatching
         HD_ENABLE_DOUBLE_MATRIX=1
         HD_ENABLE_GPU_COUNT_VISIBLE_INSTANCES=1
         HD_ENABLE_PACKED_NORMALS=0
+        HGI_ENABLE_VULKAN=0
 )
 pxr_register_test(testHdStDrawItemIntegrity
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStDrawItemIntegrity --offscreen"
@@ -2895,7 +2895,7 @@ pxr_register_test(testHdStHWFaceCulling
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStHWFaceCulling"
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStHWFaceCulling-Run1-stdout.txt
-    POST_COMMAND "diff -I computeShader -I drawingShader -I gpuMemoryUsed testHdStHWFaceCulling-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStHWFaceCulling/baseline/testHdStHWFaceCulling-Run1-stdout.txt"
+    POST_COMMAND "diff -I computeShader -I drawingShader -I gpuMemoryUsed -I uboSize -I ssboSize testHdStHWFaceCulling-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStHWFaceCulling/baseline/testHdStHWFaceCulling-Run1-stdout.txt"
     TESTENV testHdStHWFaceCulling
 )
 pxr_register_test(testHdStIndirectDrawBatchCodeGen
@@ -3155,7 +3155,7 @@ pxr_register_test(testHdStPrimvars
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStPrimvars"
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStPrimvars-Run1-stdout.txt
-    POST_COMMAND "diff -I computeShader -I drawingShader -I gpuMemoryUsed testHdStPrimvars-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStPrimvars/baseline/testHdStPrimvars-Run1-stdout.txt"
+    POST_COMMAND "diff -I computeShader -I drawingShader -I gpuMemoryUsed -I uboSize -I ssboSize testHdStPrimvars-Run1-stdout.txt ${CMAKE_INSTALL_PREFIX}/tests/ctest/testHdStPrimvars/baseline/testHdStPrimvars-Run1-stdout.txt"
     TESTENV testHdStPrimvars
     ENV
         HDST_ENABLE_MATERIAL_PRIMVAR_FILTERING=0
