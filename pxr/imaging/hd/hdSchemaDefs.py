@@ -866,6 +866,7 @@
         SCHEMA_NAME = 'RenderBuffer',
         SCHEMA_TOKEN = 'renderBuffer',
         MEMBERS = [
+            ('ALL_MEMBERS', '', dict(ADD_LOCATOR = True)),
             ('dimensions', T_VEC3I, {}),
             ('format', T_FORMAT, {}),
             ('multiSampled', T_BOOL, {}),
