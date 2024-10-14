@@ -236,6 +236,7 @@ pxr_test_scripts(
     testenv/testUsdNamespaceEditor.py
     testenv/testUsdNamespaceEditorProperties.py
     testenv/testUsdNotices.py
+    testenv/testUsdObjectsChangedNotices.py
     testenv/testUsdOpaqueAttributes.py
     testenv/testUsdPathExpressionAttrs.py
     testenv/testUsdPayloads.py
@@ -1258,6 +1259,12 @@ pxr_register_test(testUsdFlattenLayerStack
 pxr_register_test(testUsdNotices
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNotices"
+    EXPECTED_RETURN_CODE 0
+)
+
+pxr_register_test(testUsdObjectsChangedNotices
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdObjectsChangedNotices"
     EXPECTED_RETURN_CODE 0
 )
 
