@@ -234,6 +234,8 @@ pxr_test_scripts(
     testenv/testUsdMetadata.py
     testenv/testUsdModel.py
     testenv/testUsdNamespaceEditor.py
+    testenv/testUsdNamespaceEditorDependentEditsBase.py:testUsdNamespaceEditorDependentEditsBase.py
+    testenv/testUsdNamespaceEditorDependentEditsBasicReferencesAndPayloads.py
     testenv/testUsdNamespaceEditorProperties.py
     testenv/testUsdNamespaceEditorTargetPathFixup.py
     testenv/testUsdNotices.py
@@ -1277,6 +1279,12 @@ pxr_register_test(testUsdObjectsChangedNotices
 pxr_register_test(testUsdNamespaceEditor
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNamespaceEditor"
+    EXPECTED_RETURN_CODE 0
+)
+
+pxr_register_test(testUsdNamespaceEditorDependentEditsBasicReferencesAndPayloads
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNamespaceEditorDependentEditsBasicReferencesAndPayloads"
     EXPECTED_RETURN_CODE 0
 )
 
