@@ -527,7 +527,7 @@ UsdUtils_LocalizationContext::_GetUdimTiles(
 {
     std::vector<std::string> additionalPaths;
 
-    if (!UsdShadeUdimUtils::IsUdimIdentifier(assetPath)) {
+    if (!_resolveUdimPaths || !UsdShadeUdimUtils::IsUdimIdentifier(assetPath)) {
         return additionalPaths;
     }
 
@@ -631,7 +631,8 @@ void UsdUtils_ExtractExternalReferences(
     const UsdUtils_LocalizationContext::ReferenceType refTypesToInclude,
     std::vector<std::string>* outSublayers,
     std::vector<std::string>* outReferences,
-    std::vector<std::string>* outPayloads)
+    std::vector<std::string>* outPayloads,
+    const UsdUtilsExtractExternalReferencesParams& params)
 {
     TRACE_FUNCTION();
 
@@ -643,6 +644,7 @@ void UsdUtils_ExtractExternalReferences(
     UsdUtils_LocalizationContext context(&delegate);
     context.SetRefTypesToInclude(refTypesToInclude);
     context.SetRecurseLayerDependencies(false);
+    context.SetResolveUdimPaths(params.GetResolveUdimPaths());
 
     context.Process(SdfLayer::FindOrOpen(filePath));
     client.SortAndRemoveDuplicates();
