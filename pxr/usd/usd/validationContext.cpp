@@ -8,9 +8,10 @@
 #include "pxr/base/tf/type.h"
 #include "pxr/base/work/dispatcher.h"
 #include "pxr/base/work/withScopedParallelism.h"
-#include "pxr/usd/usd/validationContext.h"
+#include "pxr/usd/usd/primFlags.h"
 #include "pxr/usd/usd/schemaRegistry.h"
 #include "pxr/usd/usd/stage.h"
+#include "pxr/usd/usd/validationContext.h"
 #include "pxr/usd/usd/validator.h"
 #include "pxr/usd/usd/validationRegistry.h"
 
@@ -298,7 +299,8 @@ UsdValidationContext::Validate(const SdfLayerHandle &layer) const
 }
 
 UsdValidationErrorVector
-UsdValidationContext::Validate(const UsdStagePtr &stage) const
+UsdValidationContext::Validate(const UsdStagePtr &stage,
+                               const Usd_PrimFlagsPredicate &predicate) const
 {
     if (!stage) {
         TF_CODING_ERROR("Invalid stage provided to validate.");
@@ -308,10 +310,18 @@ UsdValidationContext::Validate(const UsdStagePtr &stage) const
     UsdValidationErrorVector errors;
     std::mutex errorsMutex;
     WorkWithScopedDispatcher(
-        [this, &stage, &errors, &errorsMutex](WorkDispatcher &dispatcher) {
-            _ValidateStage(dispatcher, stage, &errors, &errorsMutex);
-    });
+        [this, &stage, &errors, &errorsMutex, &predicate](
+            WorkDispatcher &dispatcher) {
+                _ValidateStage(dispatcher, stage, &errors, &errorsMutex, 
+                               predicate);
+        });
     return errors;
+}
+
+UsdValidationErrorVector
+UsdValidationContext::Validate(const UsdStagePtr &stage) const
+{
+    return Validate(stage, UsdTraverseInstanceProxies(UsdPrimDefaultPredicate));
 }
 
 UsdValidationErrorVector
@@ -373,10 +383,10 @@ UsdValidationContext::_ValidateLayer(WorkDispatcher &dispatcher,
 }
 
 void
-UsdValidationContext::_ValidateStage(WorkDispatcher &dispatcher,
-                                     const UsdStagePtr &stage,
-                                     UsdValidationErrorVector *errors,
-                                     std::mutex *errorsMutex) const
+UsdValidationContext::_ValidateStage(
+    WorkDispatcher &dispatcher, const UsdStagePtr &stage, 
+    UsdValidationErrorVector *errors, std::mutex *errorsMutex, 
+    const Usd_PrimFlagsPredicate &predicate) const
 {
     // If we reached here via Validate(const UsdStagePtr&), then the stage
     // must be valid.
@@ -393,7 +403,7 @@ UsdValidationContext::_ValidateStage(WorkDispatcher &dispatcher,
             _AddErrors(validator->Validate(stage), errors, errorsMutex);
         });
     }
-    _ValidatePrims(dispatcher, stage->Traverse(), errors, errorsMutex);
+    _ValidatePrims(dispatcher, stage->Traverse(predicate), errors, errorsMutex);
 }
 
 template <typename T>
