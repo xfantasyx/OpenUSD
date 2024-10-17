@@ -44,6 +44,7 @@
 #include "pxr/imaging/hd/instanceSchema.h"
 #include "pxr/imaging/hd/integratorSchema.h"
 #include "pxr/imaging/hd/legacyDisplayStyleSchema.h"
+#include "pxr/imaging/hd/legacyTaskSchema.h"
 #include "pxr/imaging/hd/lightSchema.h"
 #include "pxr/imaging/hd/materialBindingsSchema.h"
 #include "pxr/imaging/hd/materialConnectionSchema.h"
@@ -949,6 +950,44 @@ HdDirtyBitsTranslator::InstancerLocatorSetToDirtyBits(
     }
     if (_FindLocator(HdXformSchema::GetDefaultLocator(), end, &it)) {
         bits |= HdChangeTracker::DirtyTransform;
+    }
+
+    return bits;
+}
+
+/*static*/
+HdDirtyBits
+HdDirtyBitsTranslator::TaskLocatorSetToDirtyBits(
+    HdDataSourceLocatorSet const& set)
+{
+    HdDataSourceLocatorSet::const_iterator it = set.begin();
+
+    const HdDataSourceLocatorSet::const_iterator end = set.end();
+
+    if (it == end) {
+        return HdChangeTracker::Clean;
+    }
+
+    // Note, for efficiency we search for locators in the set in order, so that
+    // we only end up making one trip through the set. If you add to this
+    // function, make sure you sort the addition by locator name, or
+    // _FindLocator won't work.
+    // Also note, this should match InstancerDirtyBitsToLocatorSet
+
+    if (*it == HdDataSourceLocator::EmptyLocator()) {
+        return HdChangeTracker::AllDirty;
+    }
+
+    HdDirtyBits bits = HdChangeTracker::Clean;
+
+    if (_FindLocator(HdLegacyTaskSchema::GetCollectionLocator(), end, &it)) {
+        bits |= HdChangeTracker::DirtyCollection;
+    }
+    if (_FindLocator(HdLegacyTaskSchema::GetParametersLocator(), end, &it)) {
+        bits |= HdChangeTracker::DirtyParams;
+    }
+    if (_FindLocator(HdLegacyTaskSchema::GetRenderTagsLocator(), end, &it)) {
+        bits |= HdChangeTracker::DirtyRenderTags;
     }
 
     return bits;

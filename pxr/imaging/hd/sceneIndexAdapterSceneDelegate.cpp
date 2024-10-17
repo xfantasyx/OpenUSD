@@ -19,6 +19,8 @@
 #include "pxr/imaging/hd/extComputationCpuCallback.h"
 #include "pxr/imaging/hd/field.h"
 #include "pxr/imaging/hd/geomSubset.h"
+#include "pxr/imaging/hd/legacyTaskFactory.h"
+#include "pxr/imaging/hd/legacyTaskSchema.h"
 #include "pxr/imaging/hd/light.h"
 #include "pxr/imaging/hd/material.h"
 #include "pxr/imaging/hd/meshTopology.h"
@@ -194,6 +196,40 @@ HdSceneIndexAdapterSceneDelegate::_GetInputPrim(SdfPath const& id)
 // ----------------------------------------------------------------------------
 // HdSceneIndexObserver interfaces
 
+static
+HdTaskSharedPtr _CreateTask(const HdSceneIndexPrim &prim,
+                            HdSceneDelegate * const delegate,
+                            const SdfPath &indexPath)
+{
+    const HdLegacyTaskSchema taskSchema =
+        HdLegacyTaskSchema::GetFromParent(prim.dataSource);
+    HdLegacyTaskFactoryDataSourceHandle const ds =
+        taskSchema.GetFactory();
+    if (!ds) {
+        TF_CODING_ERROR(
+            "When adding task %s in HdSceneIndexAdapterSceneDelegate: "
+            "No factory data source in HdLegacyTaskSchema.",
+            indexPath.GetText());
+        return nullptr;
+    }
+    HdLegacyTaskFactorySharedPtr const factory = ds->GetTypedValue(0.0f);
+    if (!factory) {
+        TF_CODING_ERROR(
+            "When adding task %s in HdSceneIndexAdapterSceneDelegate: "
+            "No factory in HdLegacyTaskSchema.",
+            indexPath.GetText());
+        return nullptr;
+    }
+    HdTaskSharedPtr const task = factory->Create(delegate, indexPath);
+    if (!task) {
+        TF_CODING_ERROR(
+            "When adding task %s in HdSceneIndexAdapterSceneDelegate: "
+            "No task from factory in HdLegacyTaskSchema.",
+            indexPath.GetText());
+    }
+    return task;
+}
+
 void
 HdSceneIndexAdapterSceneDelegate::_PrimAdded(
     const SdfPath &primPath,
@@ -208,12 +244,13 @@ HdSceneIndexAdapterSceneDelegate::_PrimAdded(
     //     and re-insert with the correct type.
     // (3) The prim exists, and has the right type; in this case, we don't
     //     remove the prim but we should invalidate all of its properties.
+    //     Note that we make an exception for tasks - which we handle like (2).
     bool isResync = false;
 
     if (it != _primCache.end()) {
         _PrimCacheEntry &entry = (*it).second;
         const TfToken &existingType = entry.primType;
-        if (primType != existingType) {
+        if (primType != existingType || primType == HdPrimTypeTokens->task) {
             if (GetRenderIndex().IsRprimTypeSupported(existingType)) {
                 GetRenderIndex()._RemoveRprim(indexPath);
             } else if (GetRenderIndex().IsSprimTypeSupported(existingType)) {
@@ -243,6 +280,11 @@ HdSceneIndexAdapterSceneDelegate::_PrimAdded(
         } else if (primType == HdPrimTypeTokens->geomSubset) {
             GetRenderIndex().GetChangeTracker()._MarkRprimDirty(
                 indexPath.GetParentPath(), HdChangeTracker::DirtyTopology);
+        } else if (primType == HdPrimTypeTokens->task) {
+            if (HdTaskSharedPtr const task =
+                    _CreateTask(_GetInputPrim(indexPath), this, indexPath)) {
+                GetRenderIndex()._InsertTask(this, indexPath, task);
+            }
         }
     }
 
@@ -362,6 +404,8 @@ HdSceneIndexAdapterSceneDelegate::PrimsRemoved(
                 GetRenderIndex().GetChangeTracker()._MarkRprimDirty(
                     entry.primPath.GetParentPath(),
                     HdChangeTracker::DirtyTopology);
+            } else if (primType == HdPrimTypeTokens->task) {
+                GetRenderIndex().RemoveTask(entry.primPath);
             }
         } else {
             // Otherwise, there's a subtree and we need to call _RemoveSubtree.
@@ -439,6 +483,14 @@ HdSceneIndexAdapterSceneDelegate::PrimsDirtied(
         } else if (primType == HdPrimTypeTokens->geomSubset) {
             GetRenderIndex().GetChangeTracker()._MarkRprimDirty(
                 indexPath.GetParentPath(), HdChangeTracker::DirtyTopology);
+        } else if (primType == HdPrimTypeTokens->task) {
+            const HdDirtyBits dirtyBits =
+                HdDirtyBitsTranslator::TaskLocatorSetToDirtyBits(
+                    entry.dirtyLocators);
+            if (dirtyBits != HdChangeTracker::Clean) {
+                GetRenderIndex().GetChangeTracker().MarkTaskDirty(
+                    indexPath, dirtyBits);
+            }
         }
 
         if (entry.dirtyLocators.Intersects(
@@ -2043,6 +2095,26 @@ HdSceneIndexAdapterSceneDelegate::Get(SdfPath const &id, TfToken const &key)
         }
     }
 
+    // For tasks.
+    if (const HdLegacyTaskSchema task =
+            HdLegacyTaskSchema::GetFromParent(prim.dataSource)) {
+        if (key == HdTokens->params) {
+            if (HdSampledDataSourceHandle const ds = task.GetParameters()) {
+                return ds->GetValue(0.0f);
+            }
+        }
+        if (key == HdTokens->collection) {
+            if (HdRprimCollectionDataSourceHandle const ds = task.GetCollection()) {
+                return ds->GetValue(0.0f);
+            }
+        }
+        if (key == HdTokens->renderTags) {
+            if (HdTokenVectorDataSourceHandle const ds = task.GetRenderTags()) {
+                return ds->GetValue(0.0f);
+            }
+        }
+    }
+
     // Fallback for unknown prim conventions provided by emulated scene
     // delegate.
     if (HdTypedSampledDataSource<HdSceneDelegate*>::Handle sdDs =
@@ -2730,6 +2802,20 @@ HdSceneIndexAdapterSceneDelegate::InvokeExtComputation(
         return;
     }
     callback->Compute(context);
+}
+
+TfTokenVector
+HdSceneIndexAdapterSceneDelegate::GetTaskRenderTags(SdfPath const &taskId)
+{
+    TRACE_FUNCTION();
+    HF_MALLOC_TAG_FUNCTION();
+    const HdSceneIndexPrim prim = _GetInputPrim(taskId);
+    const HdLegacyTaskSchema task = HdLegacyTaskSchema::GetFromParent(prim.dataSource);
+    HdTokenVectorDataSourceHandle const ds = task.GetRenderTags();
+    if (!ds) {
+        return {};
+    }
+    return ds->GetTypedValue(0.0f);
 }
 
 void 
