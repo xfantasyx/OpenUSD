@@ -1211,6 +1211,12 @@ HdPrman_RenderParam::UpdateLegacyOptions()
             //       SetRileyShutterIntervalFromCameraContextCameraPath.  
         }
     }
+
+    // Force incremental to be enabled for interacive renders
+    if (_renderDelegate->IsInteractive() && !_usingHusk) {
+        options.SetInteger(RixStr.k_hider_incremental, 1);
+    }
+
     // Apply the batch command line settings last, so that they can
     // either intentionally override render settings, or sometimes be skipped
     // if the equivalent render setting exists, like for checkpointinterval.
