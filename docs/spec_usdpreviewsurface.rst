@@ -178,8 +178,8 @@ and :usda:`opacity`.
   interpreted; this "translucent or masked" behavior is common in engines and
   renderers, and makes the UsdPreviewSurface easier to interchange. It does
   imply, however, that it is not possible to faithfully recreate a
-  glassy/translucent material that also provides an opacity-based mask... so no
-  single-polygon glass leaves.
+  translucent material that also provides an opacity-based mask... so no
+  single-polygon translucent leaves.
 
 .. _updateior:
 
