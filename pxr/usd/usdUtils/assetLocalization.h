@@ -112,10 +112,12 @@ private:
     void _ProcessAssetValue(const SdfLayerRefPtr&  layer, 
                                const std::string &key,
                                const VtValue &val,
-                               bool processingMetadata = false);
+                               bool processingMetadata = false,
+                               bool processingDictionary = false);
     void _ProcessAssetValue(const SdfLayerRefPtr&  layer, 
                              const VtValue &val,
-                             bool processingMetadata = false);
+                             bool processingMetadata = false,
+                             bool processingDictionary = false);
 
     // Searches for udim tiles associated with the given asset path.
     std::vector<std::string> _GetUdimTiles(const SdfLayerRefPtr& layer,

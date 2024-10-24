@@ -229,7 +229,8 @@ UsdUtils_LocalizationContext::_ProcessMetadata(
             _delegate->BeginProcessValue(layer, value);
 
             _ProcessAssetValue(layer, infoKey, value, 
-                /*processingMetadata*/ true);
+                /*processingMetadata*/ true,
+                /*processingDictionary*/ false);
             _delegate->EndProcessValue(
                 layer, primSpec->GetPath(), infoKey, value);
         }
@@ -440,9 +441,10 @@ void
 UsdUtils_LocalizationContext::_ProcessAssetValue(
     const SdfLayerRefPtr& layer,
     const VtValue &val,
-    bool processingMetadata)
+    bool processingMetadata,
+    bool processingDictionary)
 {
-    _ProcessAssetValue(layer, std::string(), val, processingMetadata);
+    _ProcessAssetValue(layer, std::string(), val, processingMetadata, processingDictionary);
 }
 
 void
@@ -450,7 +452,8 @@ UsdUtils_LocalizationContext::_ProcessAssetValue(
     const SdfLayerRefPtr& layer,
     const std::string &keyPath,
     const VtValue &val,
-    bool processingMetadata) 
+    bool processingMetadata,
+    bool processingDictionary)
 {
     if (_ShouldFilterAssetPath(keyPath, processingMetadata)) {
         return;
@@ -465,7 +468,8 @@ UsdUtils_LocalizationContext::_ProcessAssetValue(
 
         const std::vector<std::string> processedDeps = 
             _delegate->ProcessValuePath(
-                    layer, keyPath, rawAssetPath, dependencies);
+                    layer, keyPath, rawAssetPath, dependencies,
+                    processingMetadata, processingDictionary);
         
         _EnqueueDependency(layer, rawAssetPath);
         _EnqueueDependencies(layer, processedDeps);
@@ -504,7 +508,9 @@ UsdUtils_LocalizationContext::_ProcessAssetValue(
         for (const auto& p : originalDict) {
             const std::string dictKey = 
                 keyPath.empty() ? p.first : keyPath + ':' + p.first;
-            _ProcessAssetValue(layer, dictKey, p.second, processingMetadata);
+            _ProcessAssetValue(
+                layer, dictKey, p.second,
+                processingMetadata, /*processingDictionary*/true);
 
         }
     }
