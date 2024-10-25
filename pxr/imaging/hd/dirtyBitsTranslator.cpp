@@ -397,7 +397,12 @@ HdDirtyBitsTranslator::InstancerDirtyBitsToLocatorSet(TfToken const& primType,
         set->append(HdXformSchema::GetDefaultLocator());
     }
     if (bits & HdChangeTracker::DirtyCategories) {
+        // Note: We don't have a DirtyInstanceCategories bit.
+        // For point instancers, instance categories is not relevant (i.e. all
+        // instances are affected), so we invalidate both categories and
+        // instanceCategories locators.
         set->append(HdInstanceCategoriesSchema::GetDefaultLocator());
+        set->append(HdCategoriesSchema::GetDefaultLocator());
     }
 }
 
@@ -935,8 +940,13 @@ HdDirtyBitsTranslator::InstancerLocatorSetToDirtyBits(
     HdDataSourceLocatorSet::const_iterator end = set.end();
     HdDirtyBits bits = HdChangeTracker::Clean;
 
+    if (_FindLocator(HdCategoriesSchema::GetDefaultLocator(), end, &it)) {
+        // This is relevant for point instancers.
+        bits |= HdChangeTracker::DirtyCategories;
+    }
     if (_FindLocator(HdInstanceCategoriesSchema::GetDefaultLocator(), end, &it)) {
         // We don't have an instance categories dirty bit.
+        // This is relevant for native instancers.
         bits |= HdChangeTracker::DirtyCategories;
     }
     if (_FindLocator(HdInstancedBySchema::GetDefaultLocator(), end, &it)) {
@@ -972,7 +982,6 @@ HdDirtyBitsTranslator::TaskLocatorSetToDirtyBits(
     // we only end up making one trip through the set. If you add to this
     // function, make sure you sort the addition by locator name, or
     // _FindLocator won't work.
-    // Also note, this should match InstancerDirtyBitsToLocatorSet
 
     if (*it == HdDataSourceLocator::EmptyLocator()) {
         return HdChangeTracker::AllDirty;
