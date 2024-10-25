@@ -137,9 +137,7 @@ UsdUtils_WritableLocalizationDelegate::_ProcessReferencesOrPayloads(
             return 
                 _ProcessRefOrPayload <typename ListOpType::ItemType, DEP_TYPE>(
                     layer, item, &dependencies);
-        },
-        /*removeDuplicates*/ true
-    );
+        });
 
     if (!modified) {
         return dependencies;
