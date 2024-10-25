@@ -67,7 +67,7 @@ _CollectAncestorTypeValidators(
     // This is done before filtering the validators by schema types, so that
     // validators for all ancestor types are collected.
     for (const TfToken &schemaType : schemaTypeNames) {
-        const TfType type = TfType::FindByName(schemaType.GetString());
+        const TfType type = UsdSchemaRegistry::GetTypeFromName(schemaType);
         std::vector<TfType> ancestorTypes;
         type.GetAllAncestorTypes(&ancestorTypes);
         for (const TfType &ancestorType : ancestorTypes) {
