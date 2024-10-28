@@ -300,6 +300,16 @@ pxr_build_test_shared_lib(TestUsdResolverChangedResolver
         testenv/TestUsdResolverChangedResolver.cpp
 )
 
+pxr_build_test_shared_lib(TestUsdValidationContextValidators
+    INSTALL_PREFIX UsdPlugins
+    LIBRARIES
+        tf
+        usd
+
+    CPPFILES
+        testenv/testUsdValidationContextValidators.cpp
+)
+
 pxr_build_test_shared_lib(TestUsdValidationRegistryPy
     INSTALL_PREFIX UsdPlugins
     LIBRARIES
