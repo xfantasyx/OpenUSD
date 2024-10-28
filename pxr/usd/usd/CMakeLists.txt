@@ -146,6 +146,7 @@ pxr_library(usd
         wrapTimeCode.cpp
         wrapUsdFileFormat.cpp
         wrapUtils.cpp
+        wrapValidationContext.cpp
         wrapValidationError.cpp
         wrapValidationRegistry.cpp
         wrapValidator.cpp
@@ -268,6 +269,7 @@ pxr_test_scripts(
     testenv/testUsdTimeSamples.py
     testenv/testUsdTimeValueAuthoring.py
     testenv/testUsdUsdzFileFormat.py
+    testenv/testUsdValidationContextPy.py
     testenv/testUsdValidationError.py
     testenv/testUsdValidationRegistryPy.py
     testenv/testUsdValidatorMetadata.py
@@ -804,6 +806,11 @@ pxr_install_test_dir(
 pxr_install_test_dir(
     SRC testenv/testUsdValidationContext
     DEST testUsdValidationContext
+)
+
+pxr_install_test_dir(
+    SRC testenv/testUsdValidationContext
+    DEST testUsdValidationContextPy
 )
 
 pxr_install_test_dir(
@@ -1428,11 +1435,18 @@ pxr_register_test(testUsdValidationError
     EXPECTED_RETURN_CODE 0
 )
 
+pxr_register_test(testUsdValidationContextPy
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContextPy"
+    EXPECTED_RETURN_CODE 0
+)
+
 pxr_register_test(testUsdValidationRegistryPy
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationRegistryPy"
     EXPECTED_RETURN_CODE 0
 )
+
 pxr_register_test(testUsdUsdzBugGHSA01
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdUsdzBugGHSA01"
     EXPECTED_RETURN_CODE 0
