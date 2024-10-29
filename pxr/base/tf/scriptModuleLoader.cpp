@@ -269,13 +269,19 @@ TfScriptModuleLoader::LoadModules()
             toLoad.push_back(std::addressof(*iter));
         }
         else {
-            TF_DEBUG(TF_SCRIPT_MODULE_LOADER)
+            TF_DEBUG(TF_SCRIPT_MODULE_LOADER_EXTRA)
                 .Msg("SML: Skipping already-loaded %s\n",
                      iter->first.GetText());
         }
     }
     lock.Release();
 
+    // Sort modules by lib name to provide a consistent load order.  This isn't
+    // required for correctness but eliminates a source of nondeterminism.
+    std::sort(toLoad.begin(), toLoad.end(),
+              [](_LibAndInfo const *l, _LibAndInfo const *r) {
+                  return l->first < r->first;
+              });
     _LoadLibModules(toLoad);
 
     TF_DEBUG(TF_SCRIPT_MODULE_LOADER).Msg("SML: End loading all modules\n");
@@ -301,7 +307,7 @@ TfScriptModuleLoader
             continue;
         }
         if (info.isLoaded) {
-            TF_DEBUG(TF_SCRIPT_MODULE_LOADER)
+            TF_DEBUG(TF_SCRIPT_MODULE_LOADER_EXTRA)
                 .Msg("SML: Lib %s's module '%s' is already loaded\n",
                      lib.GetText(), info.moduleName.GetText());
             continue;

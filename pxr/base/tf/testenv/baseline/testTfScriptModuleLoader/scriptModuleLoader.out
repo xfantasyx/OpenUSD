@@ -13,15 +13,13 @@ SML: Begin loading LoadsAll's predecessors
 SML: End loading LoadsAll's predecessors
 SML: Request to load modules for empty lib name -> load all
 SML: Begin loading all modules
-SML: Skipping already-loaded tf
-SML: Loading lib Other's module 'pxr.Tf.testenv.testTfScriptModuleLoader_Other'
-SML: Begin loading Other's predecessors
-SML: Loading lib LoadsAll's module 'pxr.Tf.testenv.testTfScriptModuleLoader_LoadsAll'
-SML: End loading Other's predecessors
 SML: Loading lib DepLoadsAll's module 'pxr.Tf.testenv.testTfScriptModuleLoader_DepLoadsAll'
 SML: Begin loading DepLoadsAll's predecessors
+SML: Loading lib LoadsAll's module 'pxr.Tf.testenv.testTfScriptModuleLoader_LoadsAll'
 SML: End loading DepLoadsAll's predecessors
-SML: Lib LoadsAll's module 'pxr.Tf.testenv.testTfScriptModuleLoader_LoadsAll' is already loaded
+SML: Loading lib Other's module 'pxr.Tf.testenv.testTfScriptModuleLoader_Other'
+SML: Begin loading Other's predecessors
+SML: End loading Other's predecessors
 SML: End loading all modules
 SML: End loading DepLoadsAll's predecessors
 # Registering a library that is totally independent, and raises an
