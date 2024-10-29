@@ -1,6 +1,6 @@
-# UsdSemantics : Semantic Labeling for Model Hierarchy {#usd_semantics_overview}
+# UsdSemantics : Semantic Labeling of Scenes {#usd_semantics_overview}
 \if ( PIXAR_MFB_BUILD )
-\mainpage UsdSemantics : Semantic Labeling for Model Hierarchy
+\mainpage UsdSemantics : Semantic Labeling of Scenes
 \endif
 
 While prims have a unique name and hierarchical identifier, it is sometimes
