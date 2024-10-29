@@ -239,7 +239,6 @@ My_TestGLDrawing::DrawTest(bool offscreen)
     UsdImagingGLRenderParams params;
     params.drawMode = GetDrawMode();
     params.enableLighting = IsEnabledTestLighting();
-    params.enableIdRender = IsEnabledIdRender();
     params.enableSceneMaterials = IsEnabledSceneMaterials();
     params.complexity = _GetComplexity();
     params.cullStyle = GetCullStyle();

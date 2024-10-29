@@ -170,6 +170,7 @@ pxr_library(hdSt
         pipelineDrawBatch
         pointsShaderKey
         quadrangulate
+        renderPassShaderKey
         resourceBinder
         shaderKey
         subdivision

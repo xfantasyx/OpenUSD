@@ -16,14 +16,19 @@
 #include "pxr/imaging/hdSt/meshShaderKey.h"
 #include "pxr/imaging/hdSt/package.h"
 #include "pxr/imaging/hdSt/pointsShaderKey.h"
+#include "pxr/imaging/hdSt/renderDelegate.h"
 #include "pxr/imaging/hdSt/renderPassShader.h"
 #include "pxr/imaging/hdSt/resourceBinder.h"
 #include "pxr/imaging/hdSt/resourceRegistry.h"
 
 #include "pxr/imaging/hd/drawingCoord.h"
+#include "pxr/imaging/hd/driver.h"
 #include "pxr/imaging/hd/basisCurves.h"
+#include "pxr/imaging/hd/renderIndex.h"
 #include "pxr/imaging/hd/rprimSharedData.h"
 #include "pxr/imaging/hd/tokens.h"
+
+#include "pxr/imaging/hgi/tokens.h"
 
 #include "pxr/imaging/glf/testGLContext.h"
 #include "pxr/imaging/hio/glslfx.h"
@@ -70,8 +75,13 @@ CodeGenTest(HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
     HdStDrawItem drawItem(&sharedData);
 
     static HgiUniquePtr hgi = Hgi::CreatePlatformDefaultHgi();
-    static HdStResourceRegistrySharedPtr registry(
-        new HdStResourceRegistry(hgi.get()));
+    static HdDriver driver{HgiTokens->renderDriver, VtValue(hgi.get())};
+    static HdStRenderDelegate renderDelegate;
+    static std::unique_ptr<HdRenderIndex> index(
+        HdRenderIndex::New(&renderDelegate, {&driver}));
+    HdStResourceRegistrySharedPtr const & registry =
+        std::static_pointer_cast<HdStResourceRegistry>(
+            index->GetResourceRegistry());
 
     HdDrawingCoord *drawingCoord = drawItem.GetDrawingCoord();
 

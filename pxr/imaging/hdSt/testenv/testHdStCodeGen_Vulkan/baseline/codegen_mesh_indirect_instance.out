@@ -2058,9 +2058,34 @@ vec4 ApplyColorOverridesPostLighting(vec4 color)
 
 
 
-void RenderOutput(vec4 Peye, vec3 Neye, vec4 color, vec4 patchCoord)
+void RenderColor(vec4 color)
 {
     colorOut = color;
+}
+
+
+
+void RenderId()
+{
+    // do nothing
+}
+
+
+
+void RenderNeye(vec3 Neye)
+{
+    // do nothing
+}
+
+
+
+void RenderOutput(vec4 Peye, vec3 Neye, vec4 color, vec4 patchCoord)
+{
+    // Write to any desired AOVs here. The render pass shader configuation
+    // decides if any of these are no-ops.
+    RenderColor(color);
+    RenderId();
+    RenderNeye(Neye);
 }
 
 
@@ -4822,9 +4847,34 @@ vec4 ApplyColorOverridesPostLighting(vec4 color)
 
 
 
-void RenderOutput(vec4 Peye, vec3 Neye, vec4 color, vec4 patchCoord)
+void RenderColor(vec4 color)
 {
     colorOut = color;
+}
+
+
+
+void RenderId()
+{
+    // do nothing
+}
+
+
+
+void RenderNeye(vec3 Neye)
+{
+    // do nothing
+}
+
+
+
+void RenderOutput(vec4 Peye, vec3 Neye, vec4 color, vec4 patchCoord)
+{
+    // Write to any desired AOVs here. The render pass shader configuation
+    // decides if any of these are no-ops.
+    RenderColor(color);
+    RenderId();
+    RenderNeye(Neye);
 }
 
 
