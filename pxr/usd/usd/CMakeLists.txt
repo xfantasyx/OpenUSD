@@ -1078,22 +1078,22 @@ pxr_register_test(testUsdValidator
     EXPECTED_RETURN_CODE 0
 )
 
-pxr_register_test(testUsdValidationContext
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContext"
-    EXPECTED_RETURN_CODE 0
-)
-
 pxr_register_test(testUsdValidationRegistry
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationRegistry"
     EXPECTED_RETURN_CODE 0
 )
 
-# This test relies on a plugin built specifically for this test.
-# The build system currently doesn't support this for static library
-# builds, so we only enable this test on shared library builds.
+#The following tests rely on plugins built specifically for them.
+#The build system currently doesn't support test-specific plugins
+#for static library builds, so we only enable these tests for
+#shared library builds.
 if (BUILD_SHARED_LIBS)
     pxr_register_test(testUsdResolverChanged
         COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdResolverChanged"
+        EXPECTED_RETURN_CODE 0
+    )
+    pxr_register_test(testUsdValidationContext
+        COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContext"
         EXPECTED_RETURN_CODE 0
     )
 endif()
