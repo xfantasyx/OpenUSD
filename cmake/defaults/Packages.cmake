@@ -88,7 +88,7 @@ if(PXR_ENABLE_PYTHON_SUPPORT)
         if(PXR_PY_UNDEFINED_DYNAMIC_LOOKUP AND NOT WIN32)
             set(PYTHON_LIBRARIES "")
         else()
-            set(PYTHON_LIBRARIES "${package}::Python")
+            set(PYTHON_LIBRARIES PYTHON::PYTHON)
         endif()
     endmacro()
 
@@ -142,6 +142,11 @@ endif()
 find_package(TBB REQUIRED COMPONENTS tbb)
 add_definitions(${TBB_DEFINITIONS})
 
+
+if(NOT TBB_tbb_LIBRARY)
+    set(TBB_tbb_LIBRARY TBB::tbb)
+endif()
+
 # --math
 if(WIN32)
     # Math functions are linked automatically by including math.h on Windows.
@@ -194,11 +199,18 @@ if (PXR_BUILD_IMAGING)
         if (OIIO_idiff_BINARY)
             set(IMAGE_DIFF_TOOL ${OIIO_idiff_BINARY} CACHE STRING "Uses idiff for image diffing")
         endif()
+        if(NOT OIIO_LIBRARIES)
+                set(OIIO_LIBRARIES OpenImageIO::OpenImageIO)
+        endif()
     endif()
     # --OpenColorIO
     if (PXR_BUILD_OPENCOLORIO_PLUGIN)
         find_package(OpenColorIO REQUIRED)
         add_definitions(-DPXR_OCIO_PLUGIN_ENABLED)
+
+        if(NOT OCIO_LIBRARIES)
+            set(OCIO_LIBRARIES OpenColorIO::OpenColorIO)
+        endif()
     endif()
     # --OpenGL
     if (PXR_ENABLE_GL_SUPPORT AND NOT PXR_APPLE_EMBEDDED)
@@ -207,7 +219,50 @@ if (PXR_BUILD_IMAGING)
         if (POLICY CMP0072)
             cmake_policy(SET CMP0072 OLD)
         endif()
-        find_package(OpenGL REQUIRED)
+
+        if(ANDROID)
+            # get_target_property(INCLUDE_DIRS EGL INTERFACE_INCLUDE_DIRECTORIES)
+            # message(FATAL_ERROR "Interface include directories: ${INCLUDE_DIRS}")
+
+            # find_package (OpenGL REQUIRED)
+  
+
+            SET(OPENGL_FOUND TRUE)
+            SET(OPENGL_GLU_FOUND TRUE)
+
+
+            # FIND_PATH( EGL_INCLUDE_DIR
+            #     EGL/egl.h
+            #     "${ANDROID_STANDALONE_TOOLCHAIN}/usr/include"
+            # )
+            # FIND_LIBRARY( EGL_LIBRARIES
+            #     NAMES
+            #         EGL
+            #     PATHS
+            #         "${ANDROID_STANDALONE_TOOLCHAIN}/usr/lib"
+            # )
+
+            FIND_PATH( GLESv3_INCLUDE_DIR
+                GLES3/gl3.h
+                "${ANDROID_STANDALONE_TOOLCHAIN}/usr/include"
+            )
+
+            
+
+            if(NOT TARGET OpenGL::GL)
+                add_library(OpenGL::GL INTERFACE IMPORTED)
+
+                set_property(TARGET OpenGL::GL APPEND PROPERTY INTERFACE_LINK_LIBRARIES EGL GLESv3)
+
+                set_target_properties(OpenGL::GL PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${GLESv3_INCLUDE_DIR}"
+                # INTERFACE_LINK_LIBRARIES "${OPENGL_LIBRARIES}"
+                )
+            endif()
+
+        else()
+            find_package(OpenGL REQUIRED)
+        endif()
         add_definitions(-DPXR_GL_SUPPORT_ENABLED)
     endif()
     # --Metal
@@ -215,53 +270,140 @@ if (PXR_BUILD_IMAGING)
         add_definitions(-DPXR_METAL_SUPPORT_ENABLED)
     endif()
     if (PXR_ENABLE_VULKAN_SUPPORT)
-        message(STATUS "Enabling experimental feature Vulkan support")
-        if (EXISTS $ENV{VULKAN_SDK})
-            # Prioritize the VULKAN_SDK includes and packages before any system
-            # installed headers. This is to prevent linking against older SDKs
-            # that may be installed by the OS.
-            # XXX This is fixed in cmake 3.18+
-            include_directories(BEFORE SYSTEM $ENV{VULKAN_SDK} $ENV{VULKAN_SDK}/include $ENV{VULKAN_SDK}/lib $ENV{VULKAN_SDK}/source)
-            set(ENV{PATH} "$ENV{VULKAN_SDK}:$ENV{VULKAN_SDK}/include:$ENV{VULKAN_SDK}/lib:$ENV{VULKAN_SDK}/source:$ENV{PATH}")
+        if(ANDROID)
+
             find_package(Vulkan REQUIRED)
             list(APPEND VULKAN_LIBS Vulkan::Vulkan)
 
-            # Find the extra vulkan libraries we need
-            set(EXTRA_VULKAN_LIBS shaderc_combined)
-            if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-                set(EXTRA_VULKAN_LIBS shaderc_combinedd)
-            endif()
-            foreach(EXTRA_LIBRARY ${EXTRA_VULKAN_LIBS})
-                find_library("${EXTRA_LIBRARY}_PATH" NAMES "${EXTRA_LIBRARY}" PATHS $ENV{VULKAN_SDK}/lib)
-                list(APPEND VULKAN_LIBS "${${EXTRA_LIBRARY}_PATH}")
-            endforeach()
+            set(VULKAN_EXT_PATH "${PROJECT_SOURCE_DIR}/android_support")
 
-            # Find the OS specific libs we need
-            if (UNIX AND NOT APPLE)
-                find_package(X11 REQUIRED)
-                list(APPEND VULKAN_LIBS ${X11_LIBRARIES})
-            elseif (WIN32)
-                # No extra libs required
+            if(NOT TARGET shaderc_combined)
+                FIND_PATH( SHADERC_INCLUDE_DIR
+                    shaderc/shaderc.h
+                    "${ANDROID_NDK}/sources/third_party/shaderc/include"
+                )
+                FIND_LIBRARY( SHADERC_LIBRARIES
+                    NAMES
+                        shaderc
+                    PATHS
+                        "${ANDROID_NDK}/sources/third_party/shaderc/libs/c++_static/${ANDROID_ABI}"
+                )
+
+                add_library(shaderc_combined INTERFACE IMPORTED)
+                set_target_properties(shaderc_combined PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${SHADERC_INCLUDE_DIR};${VULKAN_EXT_PATH}"
+                INTERFACE_LINK_LIBRARIES "${SHADERC_LIBRARIES}"
+                )
+
+                # add_library(vulkan_shaderc_lib STATIC IMPORTED)
+                # set_target_properties(vulkan_shaderc_lib PROPERTIES
+                #     INTERFACE_INCLUDE_DIRECTORIES "${SHADERC_INCLUDE_DIR};${VULKAN_EXT_PATH}"
+                #     IMPORTED_LOCATION_RELEASE "${SHADERC_LIBRARIES}"
+                #     IMPORTED_LOCATION_DEBUG "${SHADERC_LIBRARIES}"
+                #     IMPORTED_LOCATION_RELWITHDEBINFO "${SHADERC_LIBRARIES}"
+                #     )
             endif()
 
+            list(APPEND VULKAN_LIBS shaderc_combined)
             add_definitions(-DPXR_VULKAN_SUPPORT_ENABLED)
+            
         else()
-            message(FATAL_ERROR "VULKAN_SDK not valid")
+            message(STATUS "Enabling experimental feature Vulkan support")
+            if (EXISTS $ENV{VULKAN_SDK})
+                # Prioritize the VULKAN_SDK includes and packages before any system
+                # installed headers. This is to prevent linking against older SDKs
+                # that may be installed by the OS.
+                # XXX This is fixed in cmake 3.18+
+                include_directories(BEFORE SYSTEM $ENV{VULKAN_SDK} $ENV{VULKAN_SDK}/include $ENV{VULKAN_SDK}/lib $ENV{VULKAN_SDK}/source)
+                set(ENV{PATH} "$ENV{VULKAN_SDK}:$ENV{VULKAN_SDK}/include:$ENV{VULKAN_SDK}/lib:$ENV{VULKAN_SDK}/source:$ENV{PATH}")
+                find_package(Vulkan REQUIRED)
+                list(APPEND VULKAN_LIBS Vulkan::Vulkan)
+
+                # Find the extra vulkan libraries we need
+                # set(EXTRA_VULKAN_LIBS shaderc_combined)
+                # if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+                #     set(EXTRA_VULKAN_LIBS shaderc_combinedd)
+                # endif()
+                # foreach(EXTRA_LIBRARY ${EXTRA_VULKAN_LIBS})
+                #     find_library("${EXTRA_LIBRARY}_PATH" NAMES "${EXTRA_LIBRARY}" PATHS $ENV{VULKAN_SDK}/lib)
+                #     list(APPEND VULKAN_LIBS "${${EXTRA_LIBRARY}_PATH}")
+                # endforeach()
+
+                if(NOT TARGET shaderc_combined)
+                    find_library(shaderc_combined_release_lib_path NAMES "shaderc_combined" PATHS $ENV{VULKAN_SDK}/lib)
+                    find_library(shaderc_combined_debug_lib_path NAMES "shaderc_combinedd" PATHS $ENV{VULKAN_SDK}/lib)
+
+                    add_library(shaderc_combined STATIC IMPORTED)
+                    set_target_properties(shaderc_combined PROPERTIES
+                    IMPORTED_LOCATION_RELEASE "${shaderc_combined_release_lib_path}"
+                    IMPORTED_LOCATION_DEBUG "${shaderc_combined_debug_lib_path}"
+                    IMPORTED_LOCATION_RELWITHDEBINFO "${shaderc_combined_release_lib_path}"
+                    )
+                endif()
+
+                # get_target_property(test_vulkan_shader_dbg_lib shaderc_combined IMPORTED_IMPLIB_DEBUG)
+
+                list(APPEND VULKAN_LIBS shaderc_combined)
+
+                # message(FATAL_ERROR "VULKAN_LIBS=${VULKAN_LIBS}")
+
+                # Find the OS specific libs we need
+                if (UNIX AND NOT APPLE AND NOT ANDROID)
+                    find_package(X11 REQUIRED)
+                    list(APPEND VULKAN_LIBS ${X11_LIBRARIES})
+                elseif (WIN32)
+                    # No extra libs required
+                endif()
+
+                add_definitions(-DPXR_VULKAN_SUPPORT_ENABLED)
+                # add_definitions(-DVMA_VULKAN_VERSION=1001000)
+                
+            else()
+                message(FATAL_ERROR "VULKAN_SDK not valid")
+            endif()
         endif()
+        
     endif()
     # --Opensubdiv
     set(OPENSUBDIV_USE_GPU ${PXR_BUILD_GPU_SUPPORT})
+    
+    if (EMSCRIPTEN )
+        set(OPENSUBDIV_USE_GPU OFF)
+    endif()
+    
     find_package(OpenSubdiv 3 REQUIRED)
+    set(OPENSUBDIV_LIBRARIES ${OPENSUBDIV_OSDCPU_LIBRARY})
+
+    if(OPENSUBDIV_USE_GPU)
+        list(APPEND OPENSUBDIV_LIBRARIES ${OPENSUBDIV_OSDGPU_LIBRARY})
+    endif()
+    
     # --Ptex
     if (PXR_ENABLE_PTEX_SUPPORT)
         find_package(PTex REQUIRED)
         add_definitions(-DPXR_PTEX_SUPPORT_ENABLED)
+        if(NOT PTEX_LIBRARY)
+            if(TARGET Ptex::Ptex_dynamic)
+                set(PTEX_LIBRARY Ptex::Ptex_dynamic)
+            else()
+                set(PTEX_LIBRARY Ptex::Ptex_static)
+            endif()
+            
+        endif()
     endif()
     # --OpenVDB
     if (PXR_ENABLE_OPENVDB_SUPPORT)
         set(REQUIRES_Imath TRUE)
         find_package(OpenVDB REQUIRED)
         add_definitions(-DPXR_OPENVDB_SUPPORT_ENABLED)
+
+        if(NOT OPENVDB_LIBRARY)
+            if(TARGET openvdb_shared)
+                set(OPENVDB_LIBRARY openvdb_shared)
+            else()
+                set(OPENVDB_LIBRARY openvdb_static)
+            endif()
+        endif()
     endif()
     # --X11
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -295,11 +437,24 @@ if (PXR_BUILD_ALEMBIC_PLUGIN)
                 HL
             REQUIRED
         )
+
+        if(NOT HDF5_LIBRARIES)
+            set(HDF5_LIBRARIES ${HDF5_EXPORT_LIBRARIES})
+        endif()
+    endif()
+
+    if(NOT ALEMBIC_LIBRARIES)
+        set(ALEMBIC_FOUND TRUE)
+        set(ALEMBIC_LIBRARIES Alembic::Alembic)
     endif()
 endif()
 
 if (PXR_BUILD_DRACO_PLUGIN)
     find_package(Draco REQUIRED)
+
+    if(NOT DRACO_LIBRARY)
+        set(DRACO_LIBRARY draco::draco)
+    endif()
 endif()
 
 if (PXR_ENABLE_MATERIALX_SUPPORT)

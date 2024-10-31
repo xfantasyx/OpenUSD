@@ -81,7 +81,7 @@ function(pxr_python_bin BIN_NAME)
         return()
     endif()
 
-    _get_install_dir(bin installDir)
+    _get_install_dir(${PXR_INSTALL_BIN_DIR} installDir)
 
     # Source file.
     if( "${pb_PYTHON_FILE}" STREQUAL "")
@@ -151,7 +151,7 @@ function(pxr_python_bin BIN_NAME)
 endfunction() # pxr_python_bin
 
 function(pxr_cpp_bin BIN_NAME)
-    _get_install_dir(bin installDir)
+    _get_install_dir(${PXR_INSTALL_BIN_DIR} installDir)
     
     set(multiValueArgs
         LIBRARIES
@@ -190,7 +190,7 @@ function(pxr_cpp_bin BIN_NAME)
     )
 
     _pxr_init_rpath(rpath "${installDir}")
-    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/lib")
+    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}")
     _pxr_install_rpath(rpath ${BIN_NAME})
 
     _pxr_target_link_libraries(${BIN_NAME}
@@ -267,7 +267,7 @@ function(pxr_library NAME)
 
         if(libraryRequiresPython)
             list(APPEND args_LIBRARIES ${PYTHON_LIBRARIES} python)
-            list(APPEND args_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
+            # list(APPEND args_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
         endif()
     endif()
 
@@ -444,7 +444,7 @@ function(pxr_setup_python)
     string(REPLACE ";" ", " pyModulesStr "${converted}")
 
     # Install a pxr __init__.py with an appropriate __all__
-    _get_install_dir(lib/python/pxr installPrefix)
+    _get_install_dir(${PXR_INSTALL_LIB_DIR}/python/pxr installPrefix)
 
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated_modules_init.py"
          "__all__ = [${pyModulesStr}]\n")
@@ -495,7 +495,7 @@ function (pxr_create_test_module MODULE_NAME)
             RENAME 
                 __init__.py
             DESTINATION 
-                tests/${tm_INSTALL_PREFIX}/lib/python/${tm_DEST_DIR}
+                tests/${tm_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/python/${tm_DEST_DIR}
         )
     endif()
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${plugInfoFile}")
@@ -505,7 +505,7 @@ function (pxr_create_test_module MODULE_NAME)
             RENAME 
                 plugInfo.json
             DESTINATION 
-                tests/${tm_INSTALL_PREFIX}/lib/python/${tm_DEST_DIR}
+                tests/${tm_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/python/${tm_DEST_DIR}
         )
     endif()
 endfunction() # pxr_create_test_module
@@ -535,7 +535,7 @@ function(pxr_build_test_shared_lib LIBRARY_NAME)
     _pxr_target_link_libraries(${LIBRARY_NAME}
         ${bt_LIBRARIES}
     )
-    _get_folder("tests/lib" folder)
+    _get_folder("tests/${PXR_INSTALL_LIB_DIR}" folder)
     set_target_properties(${LIBRARY_NAME}
         PROPERTIES 
             FOLDER "${folder}"
@@ -543,8 +543,8 @@ function(pxr_build_test_shared_lib LIBRARY_NAME)
 
     # Find libraries under the install prefix, which has the core USD
     # libraries.
-    _pxr_init_rpath(rpath "tests/lib")
-    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/lib")
+    _pxr_init_rpath(rpath "tests/${PXR_INSTALL_LIB_DIR}")
+    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}")
     _pxr_install_rpath(rpath ${LIBRARY_NAME})
 
     if (NOT bt_SOURCE_DIR)
@@ -557,14 +557,14 @@ function(pxr_build_test_shared_lib LIBRARY_NAME)
         set(TEST_PLUG_INFO_ROOT "..")
         set(LIBRARY_FILE "${CMAKE_SHARED_LIBRARY_PREFIX}${LIBRARY_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
-        set(testPlugInfoLibDir "tests/${bt_INSTALL_PREFIX}/lib/${LIBRARY_NAME}")
+        set(testPlugInfoLibDir "tests/${bt_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/${LIBRARY_NAME}")
         set(testPlugInfoResourceDir "${testPlugInfoLibDir}/${TEST_PLUG_INFO_RESOURCE_PATH}")
         set(testPlugInfoPath "${PROJECT_BINARY_DIR}/${testPlugInfoResourceDir}/plugInfo.json")
 
         file(RELATIVE_PATH 
             TEST_PLUG_INFO_LIBRARY_PATH
             "${CMAKE_INSTALL_PREFIX}/${testPlugInfoLibDir}"
-            "${CMAKE_INSTALL_PREFIX}/tests/lib/${LIBRARY_FILE}")
+            "${CMAKE_INSTALL_PREFIX}/tests/${PXR_INSTALL_LIB_DIR}/${LIBRARY_FILE}")
 
         configure_file("${testPlugInfoSrcPath}" "${testPlugInfoPath}")
         # XXX -- We shouldn't have to install to run tests.
@@ -587,9 +587,9 @@ function(pxr_build_test_shared_lib LIBRARY_NAME)
     # XXX -- We shouldn't have to install to run tests.
     install(
         TARGETS ${LIBRARY_NAME}
-        LIBRARY DESTINATION "tests/lib"
-        ARCHIVE DESTINATION "tests/lib"
-        RUNTIME DESTINATION "tests/lib"
+        LIBRARY DESTINATION "tests/${PXR_INSTALL_LIB_DIR}"
+        ARCHIVE DESTINATION "tests/${PXR_INSTALL_LIB_DIR}"
+        RUNTIME DESTINATION "tests/${PXR_INSTALL_LIB_DIR}"
     )
 endfunction() # pxr_build_test_shared_lib
 
@@ -616,7 +616,7 @@ function(pxr_build_test TEST_NAME)
 
     # Turn PIC ON otherwise ArchGetAddressInfo() on Linux may yield
     # unexpected results.
-    _get_folder("tests/bin" folder)
+    _get_folder("tests/${PXR_INSTALL_BIN_DIR}" folder)
     set_target_properties(${TEST_NAME}
         PROPERTIES 
             FOLDER "${folder}"
@@ -632,7 +632,7 @@ function(pxr_build_test TEST_NAME)
     # Find libraries under the install prefix, which has the core USD
     # libraries.
     _pxr_init_rpath(rpath "tests")
-    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/lib")
+    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}")
     _pxr_install_rpath(rpath ${TEST_NAME})
 
     # XXX -- We shouldn't have to install to run tests.
@@ -900,7 +900,7 @@ function(pxr_register_test TEST_NAME)
     # we set the PXR_PLUGINPATH_NAME env var to point to the "lib/usd"
     # directory where these files are installed.
     if (NOT TARGET shared_libs)
-        set(testWrapperCmd ${testWrapperCmd} --env-var=${PXR_PLUGINPATH_NAME}=${CMAKE_INSTALL_PREFIX}/lib/usd)
+        set(testWrapperCmd ${testWrapperCmd} --env-var=${PXR_PLUGINPATH_NAME}=${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/usd)
     endif()
 
     if (PXR_TEST_RUN_TEMP_DIR_PREFIX)
@@ -910,7 +910,7 @@ function(pxr_register_test TEST_NAME)
     # Ensure that Python imports the Python files built by this build.
     # On Windows convert backslash to slash and don't change semicolons
     # to colons.
-    set(_testPythonPath "${CMAKE_INSTALL_PREFIX}/lib/python;$ENV{PYTHONPATH}")
+    set(_testPythonPath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/python;$ENV{PYTHONPATH}")
     if(WIN32)
         string(REGEX REPLACE "\\\\" "/" _testPythonPath "${_testPythonPath}")
     else()
@@ -952,7 +952,7 @@ function(pxr_setup_plugins)
     foreach(dirName ${PXR_EXTRA_PLUGINS})
         file(RELATIVE_PATH
             relDirName
-            "${CMAKE_INSTALL_PREFIX}/lib/usd"
+            "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/usd"
             "${CMAKE_INSTALL_PREFIX}/${dirName}"
         )
         set(extraIncludes "${extraIncludes},\n        \"${relDirName}/\"")
@@ -963,7 +963,7 @@ function(pxr_setup_plugins)
          "${plugInfoContents}")
     install(
         FILES "${CMAKE_CURRENT_BINARY_DIR}/plugins_plugInfo.json"
-        DESTINATION lib/usd
+        DESTINATION ${PXR_INSTALL_LIB_DIR}/usd
         RENAME "plugInfo.json"
     )
 
@@ -972,7 +972,7 @@ function(pxr_setup_plugins)
          "${plugInfoContents}")
     install(
         FILES "${CMAKE_CURRENT_BINARY_DIR}/usd_plugInfo.json"
-        DESTINATION plugin/usd
+        DESTINATION ${PXR_INSTALL_PLUGIN_DIR}/usd
         RENAME "plugInfo.json"
     )
 endfunction() # pxr_setup_plugins
@@ -1075,7 +1075,7 @@ function(pxr_toplevel_prologue)
                     PREFIX "${libPrefix}"
                     IMPORT_PREFIX "${libPrefix}"
             )
-            _get_install_dir("lib" libInstallPrefix)
+            _get_install_dir("${PXR_INSTALL_LIB_DIR}" libInstallPrefix)
             install(
                 TARGETS usd_ms
                 EXPORT pxrTargets
@@ -1166,8 +1166,8 @@ function(pxr_toplevel_epilogue)
         )
 
         _pxr_init_rpath(rpath "${libInstallPrefix}")
-        _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_SUBDIR}/lib")
-        _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/lib")
+        _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_SUBDIR}/${PXR_INSTALL_LIB_DIR}")
+        _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}")
         _pxr_install_rpath(rpath usd_ms)
     endif()
 
@@ -1333,7 +1333,7 @@ function(pxr_build_python_documentation)
     set(BUILT_XML_DOCS "${PROJECT_BINARY_DIR}/docs/doxy_xml")
     set(CONVERT_DOXYGEN_TO_PYTHON_DOCS_SCRIPT 
        "${PROJECT_SOURCE_DIR}/docs/python/convertDoxygen.py")
-    set(INSTALL_PYTHON_PXR_ROOT "${CMAKE_INSTALL_PREFIX}/lib/python/pxr")
+    set(INSTALL_PYTHON_PXR_ROOT "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/python/pxr")
 
     # Get the list of pxr python modules and run a install command for each
     get_property(pxrPythonModules GLOBAL PROPERTY PXR_PYTHON_MODULES)
@@ -1342,7 +1342,7 @@ function(pxr_build_python_documentation)
     # Run convertDoxygen on the module list, setting PYTHONPATH 
     # to the install path for the USD Python modules
     if (WIN32)
-        set(DLL_PATH_FLAG "--dllPath \"${CMAKE_INSTALL_PREFIX}/lib;${CMAKE_INSTALL_PREFIX}/bin;${CMAKE_INSTALL_PREFIX}/plugin/usd;${CMAKE_INSTALL_PREFIX}/share/usd/examples/plugin\"")
+        set(DLL_PATH_FLAG "--dllPath \"${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR};${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_BIN_DIR};${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_PLUGIN_DIR}/usd;${CMAKE_INSTALL_PREFIX}/share/usd/examples/plugin\"")
     else()
         set(DLL_PATH_FLAG "")
     endif()
@@ -1353,7 +1353,7 @@ function(pxr_build_python_documentation)
             COMMAND ${PYTHON_EXECUTABLE} ${CONVERT_DOXYGEN_TO_PYTHON_DOCS_SCRIPT} \
                 --package pxr --module ${pxrPythonModulesStr} \
                 --inputIndex ${BUILT_XML_DOCS}/index.xml \
-                --pythonPath ${CMAKE_INSTALL_PREFIX}/lib/python \
+                --pythonPath ${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}/python \
                 ${DLL_PATH_FLAG} \
                 --output ${INSTALL_PYTHON_PXR_ROOT})
         if (NOT \${convert_doxygen_return_code} EQUAL \"0\")

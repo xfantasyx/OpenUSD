@@ -57,6 +57,8 @@ _SupportsPresentation(
     #elif defined(VK_USE_PLATFORM_METAL_EXT)
         // Presentation currently always supported on Metal / MoltenVk
         return true;
+	#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+	    return true;
     #else
         #error Unsupported Platform
         return true;

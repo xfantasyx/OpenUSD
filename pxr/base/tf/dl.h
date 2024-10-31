@@ -54,6 +54,11 @@ bool Tf_DlOpenIsActive();
 TF_API
 bool Tf_DlCloseIsActive();
 
+#if defined(__ANDROID__) || defined(ANDROID)
+TF_API
+void Tf_SetNativeLibraryDir(const std::string& nativeLibDir);
+#endif
+
 ///@}
 
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -19,9 +19,9 @@ if (PXR_USE_INTERNAL_BOOST_PYTHON)
     # Specify PYTHON_INCLUDE_DIRS explicitly to ensure this library
     # picks up Python headers when PXR_PY_UNDEFINED_DYNAMIC_LOOKUP
     # is set.
-    set(include_dirs
-        ${PYTHON_INCLUDE_DIRS}
-    )
+    # set(include_dirs
+    #     ${PYTHON_INCLUDE_DIRS}
+    # )
 
     set(cppfiles
         src/converter/arg_to_python_base.cpp

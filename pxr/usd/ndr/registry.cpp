@@ -908,6 +908,14 @@ NdrRegistry::_FindAndInstantiateDiscoveryPlugins()
         NdrDiscoveryPluginFactoryBase* pluginFactory =
             discoveryPluginType.GetFactory<NdrDiscoveryPluginFactoryBase>();
 
+        if(!pluginFactory)
+        {
+            if(auto factory = discoveryPluginType.GetFactory<TfType::FactoryBase>())
+            {
+                pluginFactory = static_cast<NdrDiscoveryPluginFactoryBase*>(factory);
+            }
+        }
+
         if (TF_VERIFY(pluginFactory)) {
             _discoveryPlugins.emplace_back(pluginFactory->New());
         }
@@ -963,6 +971,14 @@ NdrRegistry::_InstantiateParserPlugins(
 
         NdrParserPluginFactoryBase* pluginFactory =
             parserPluginType.GetFactory<NdrParserPluginFactoryBase>();
+
+        if(!pluginFactory)
+        {
+            if(auto factory = parserPluginType.GetFactory<TfType::FactoryBase>())
+            {
+                pluginFactory = static_cast<NdrParserPluginFactoryBase*>(factory);
+            }
+        }
 
         if (!TF_VERIFY(pluginFactory)) {
             continue;

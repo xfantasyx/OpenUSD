@@ -541,7 +541,11 @@ GlfDrawTarget::WriteToFile(std::string const & name,
     std::unique_ptr<char[]> buf(new char[bufsize]);
 
     {
+#if defined(__ANDROID__) || defined(ANDROID)
+
+#else
         glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+#endif
 
         glPixelStorei(GL_PACK_ROW_LENGTH, 0);
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -557,14 +561,28 @@ GlfDrawTarget::WriteToFile(std::string const & name,
 
         {
             TRACE_FUNCTION_SCOPE("glGetTexImage");
-            glGetTexImage(GL_TEXTURE_2D, 0, a->GetFormat(), a->GetType(),
-                          buf.get());
+#if defined(__ANDROID__) || defined(ANDROID)
+            GLuint fbo;
+            glGenFramebuffers(1, &fbo);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, a->GetGlTextureName(), 0);
+
+            glReadPixels(0, 0, _size[0], _size[1], GL_RGBA, GL_UNSIGNED_BYTE, buf.get());
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glDeleteFramebuffers(1, &fbo);
+
+#else
+            glGetTexImage(GL_TEXTURE_2D, 0, a->GetFormat(), a->GetType(), buf.get());
+#endif
         }
 
-        glActiveTexture( restoreActiveTexture );
-        glBindTexture( GL_TEXTURE_2D, restoreBinding );
-
+        glActiveTexture(restoreActiveTexture);
+        glBindTexture(GL_TEXTURE_2D, restoreBinding);
+#if defined(__ANDROID__) || defined(ANDROID)
+#else
         glPopClientAttrib();
+#endif
     }
 
     VtDictionary metadata;
@@ -701,16 +719,16 @@ GlfDrawTarget::Attachment::_GenTexture()
         glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, _textureNameMS );
 
         // XXX: Hardcoded filtering for now
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-
-        glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE,
-                                 _numSamples, _internalFormat, 
-                                 _size[0], _size[1], GL_TRUE );
-
-        glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#if defined(__ANDROID__) || defined(ANDROID)
+        glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, _numSamples, _internalFormat, _size[0], _size[1], GL_TRUE);
+#else
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, _numSamples, _internalFormat, _size[0], _size[1], GL_TRUE);
+#endif
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 
         memoryUsed = baseImageSize * _numSamples;
     }

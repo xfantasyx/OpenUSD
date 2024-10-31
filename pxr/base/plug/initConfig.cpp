@@ -17,6 +17,10 @@
 #include "pxr/base/arch/symbols.h"
 #include "pxr/base/arch/systemInfo.h"
 
+#if defined(__ANDROID__) || defined(ANDROID)
+#include "pxr/base/tf/dl.h"
+#endif
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 namespace {
@@ -80,6 +84,10 @@ ARCH_CONSTRUCTOR(Plug_InitConfig, 2, void)
     }
 
     binaryPath = TfGetPathName(binaryPath);
+
+#if defined(__ANDROID__) || defined(ANDROID)
+    Tf_SetNativeLibraryDir(binaryPath);
+#endif
 
     debugMessages.emplace_back(
         TfStringPrintf(

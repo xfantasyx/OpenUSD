@@ -7,12 +7,15 @@
 #ifndef PXR_BASE_ARCH_DEFINES_H
 #define PXR_BASE_ARCH_DEFINES_H
 
+// clang-format off
 //
 // OS
 //
-
-#if defined(__linux__)
-#define ARCH_OS_LINUX
+#if defined(__ANDROID__) || defined(ANDROID)
+    #define ARCH_OS_ANDROID
+    #define ARCH_OS_LINUX
+#elif defined(__linux__)
+    #define ARCH_OS_LINUX
 #elif defined(__APPLE__)
 #include "TargetConditionals.h"
 #define ARCH_OS_DARWIN

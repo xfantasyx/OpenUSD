@@ -16,35 +16,30 @@ set(PXR_MINOR_VERSION "@PXR_MINOR_VERSION@")
 set(PXR_PATCH_VERSION "@PXR_PATCH_VERSION@")
 set(PXR_VERSION "@PXR_VERSION@")
 
+include(CMakeFindDependencyMacro)
+find_dependency(tbb REQUIRED)
 # If Python support was enabled for this USD build, find the import
 # targets by invoking the appropriate FindPython module. Use the same
 # LIBRARY and INCLUDE_DIR settings from the original build if they
 # were set. This can be overridden by specifying different values when
 # running cmake.
 if(@PXR_ENABLE_PYTHON_SUPPORT@)
-    if (NOT DEFINED Python3_EXECUTABLE)
-        if (NOT [[@Python3_EXECUTABLE@]] STREQUAL "")
-            set(Python3_EXECUTABLE [[@Python3_EXECUTABLE@]])
-        endif()
-    endif()
-
-    if (NOT DEFINED Python3_LIBRARY)
-        if (NOT [[@Python3_LIBRARY@]] STREQUAL "")
-            set(Python3_LIBRARY [[@Python3_LIBRARY@]])
-        endif()
-    endif()
-
-    if (NOT DEFINED Python3_INCLUDE_DIR)
-        if (NOT [[@Python3_INCLUDE_DIR@]] STREQUAL "")
-            set(Python3_INCLUDE_DIR [[@Python3_INCLUDE_DIR@]])
-        endif()
-    endif()
 
     if (NOT DEFINED Python3_VERSION)
         find_package(Python3 "@Python3_VERSION@" EXACT COMPONENTS Development REQUIRED)
     else()
         find_package(Python3 COMPONENTS Development REQUIRED)
     endif()
+
+    if(NOT TARGET PYTHON::PYTHON)
+        add_library(PYTHON::PYTHON INTERFACE IMPORTED)
+
+        set_target_properties(PYTHON::PYTHON PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${Python3_INCLUDE_DIRS}"
+            INTERFACE_LINK_LIBRARIES "${Python3_LIBRARIES}" )
+    endif()
+
+    
 endif()
 
 # If MaterialX support was enabled for this USD build, try to find the
@@ -52,12 +47,7 @@ endif()
 # module that was used for that build. This can be overridden by
 # specifying a different MaterialX_DIR when running cmake.
 if(@PXR_ENABLE_MATERIALX_SUPPORT@)
-    if (NOT DEFINED MaterialX_DIR)
-        if (NOT [[@MaterialX_DIR@]] STREQUAL "")
-            set(MaterialX_DIR [[@MaterialX_DIR@]])
-        endif()
-    endif()
-    find_package(MaterialX REQUIRED)
+    find_dependency(MaterialX REQUIRED)
 endif()
 
 # Similar to MaterialX above, we are using Imath's cmake package config, so set
@@ -66,12 +56,90 @@ endif()
 # Note that we only need to do this, when it is determined by Imath is being
 # used instead of OpenExr (refer Packages.cmake)
 if(@Imath_FOUND@)
-    if (NOT DEFINED Imath_DIR)
-        if (NOT [[@Imath_DIR@]] STREQUAL "")
-            set(Imath_DIR [[@Imath_DIR@]])
+    find_dependency(Imath REQUIRED)
+endif()
+
+if(@PXR_ENABLE_PTEX_SUPPORT@)
+    find_dependency(PTex REQUIRED)
+endif()
+
+if(@OpenColorIO_FOUND@)
+    find_dependency(OpenColorIO REQUIRED)
+endif()
+
+if(@OpenSubdiv_FOUND@)
+    find_dependency(OpenSubdiv 3 REQUIRED)
+endif()
+
+if(@PXR_ENABLE_OPENVDB_SUPPORT@)
+    find_dependency(OpenVDB REQUIRED)
+endif()
+
+if(@PXR_ENABLE_GL_SUPPORT@)
+    if(ANDROID)
+
+        SET(OPENGL_FOUND TRUE)
+        SET(OPENGL_GLU_FOUND TRUE)
+	
+        FIND_PATH( GLESv3_INCLUDE_DIR
+                    GLES3/gl3.h
+                    "${ANDROID_STANDALONE_TOOLCHAIN}/usr/include"
+                )
+
+        if(NOT TARGET OpenGL::GL)
+            add_library(OpenGL::GL INTERFACE IMPORTED)
+	    
+	        set_property(TARGET OpenGL::GL APPEND PROPERTY INTERFACE_LINK_LIBRARIES EGL GLESv3)
+
+            set_target_properties(OpenGL::GL PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${GLESv3_INCLUDE_DIR}"
+                )
+
+        endif()
+
+    else()
+        find_package(OpenGL REQUIRED)
+    endif()
+endif()
+if(@PXR_ENABLE_VULKAN_SUPPORT@)
+
+    if(ANDROID)
+        find_dependency(Vulkan REQUIRED)
+        
+        if(NOT TARGET shaderc_combined)
+            FIND_PATH( SHADERC_INCLUDE_DIR
+                shaderc/shaderc.h
+                "${ANDROID_NDK}/sources/third_party/shaderc/include"
+            )
+            FIND_LIBRARY( SHADERC_LIBRARIES
+                NAMES
+                    shaderc
+                PATHS
+                    "${ANDROID_NDK}/sources/third_party/shaderc/libs/c++_static/${ANDROID_ABI}"
+            )
+
+            add_library(shaderc_combined INTERFACE IMPORTED)
+            set_target_properties(shaderc_combined PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${SHADERC_INCLUDE_DIR}"
+            INTERFACE_LINK_LIBRARIES "${SHADERC_LIBRARIES}"
+            )
+
+        endif()
+    else()
+        find_dependency(Vulkan REQUIRED)
+        
+        if(NOT TARGET shaderc_combined)
+            find_library(shaderc_combined_release_lib_path NAMES "shaderc_combined" PATHS $ENV{VULKAN_SDK}/lib)
+            find_library(shaderc_combined_debug_lib_path NAMES "shaderc_combinedd" PATHS $ENV{VULKAN_SDK}/lib)
+
+            add_library(shaderc_combined STATIC IMPORTED)
+            set_target_properties(shaderc_combined PROPERTIES
+            IMPORTED_LOCATION_RELEASE "${shaderc_combined_release_lib_path}"
+            IMPORTED_LOCATION_DEBUG "${shaderc_combined_debug_lib_path}"
+            IMPORTED_LOCATION_RELWITHDEBINFO "${shaderc_combined_release_lib_path}"
+            )
         endif()
     endif()
-    find_package(Imath REQUIRED)
 endif()
 
 include("${PXR_CMAKE_DIR}/cmake/pxrTargets.cmake")

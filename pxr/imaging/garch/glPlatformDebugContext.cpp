@@ -34,7 +34,32 @@ GarchGLPlatformDebugContext::IsEnabledCoreProfile()
 PXR_NAMESPACE_CLOSE_SCOPE
 
 ////////////////////////////////////////////////////////////
-#if defined(ARCH_OS_LINUX)
+#if defined(ARCH_OS_ANDROID)
+PXR_NAMESPACE_OPEN_SCOPE
+
+// XXX: implement debug context
+class GarchGLPlatformDebugContextPrivate
+{
+public:
+    GarchGLPlatformDebugContextPrivate(int majorVersion, int minorVersion, bool coreProfile, bool directRendering)
+    {
+    }
+    ~GarchGLPlatformDebugContextPrivate()
+    {
+    }
+
+    void MakeCurrent()
+    {
+    }
+};
+
+void* GarchSelectCoreProfileMacVisual()
+{
+    return nullptr;
+}
+
+PXR_NAMESPACE_CLOSE_SCOPE
+#elif defined(ARCH_OS_LINUX)
 
 #include <GL/glx.h>
 #include <GL/glxtokens.h>

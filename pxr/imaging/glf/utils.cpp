@@ -50,7 +50,11 @@ GlfGetElementSize(GLenum type)
         case GL_FLOAT:
             return sizeof(GLfloat);
         case GL_DOUBLE:
+		#if defined(__ANDROID__) || defined(ANDROID)
+			return sizeof(double);
+		#else
             return sizeof(GLdouble);
+		#endif
         case GL_HALF_FLOAT:
             return sizeof(GLhalf);
         default:

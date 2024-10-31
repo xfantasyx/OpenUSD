@@ -6,6 +6,22 @@
 #
 include(Version)
 
+if(NOT DEFINED PXR_INSTALL_BIN_DIR)
+    set(PXR_INSTALL_BIN_DIR "$<CONFIG>/bin" CACHE PATH "Installation directory for executables")
+endif()
+
+if(NOT DEFINED PXR_INSTALL_LIB_DIR)
+    set(PXR_INSTALL_LIB_DIR "$<CONFIG>/lib" CACHE PATH "Installation directory for libraries")
+endif()
+
+if(NOT DEFINED PXR_INSTALL_PLUGIN_DIR)
+    set(PXR_INSTALL_PLUGIN_DIR "$<CONFIG>/plugin" CACHE PATH "Installation directory for plugins")
+endif()
+
+message(STATUS "*** PXR_INSTALL_BIN_DIR=${PXR_INSTALL_BIN_DIR}")
+message(STATUS "*** PXR_INSTALL_LIB_DIR=${PXR_INSTALL_LIB_DIR}")
+message(STATUS "*** PXR_INSTALL_PLUGIN_DIR=${PXR_INSTALL_PLUGIN_DIR}")
+
 # Copy headers to the build tree.  Under pxr/ the include paths match the
 # source tree paths but elsewhere they do not. Instead we use include
 # paths like rmanArgsParser/rmanArgsParser.h.  So if /pxr/ is not in the
@@ -180,7 +196,7 @@ function(_install_python LIBRARY_NAME)
         ${ARGN}
     )
 
-    set(libPythonPrefix lib/python)
+    set(libPythonPrefix ${PXR_INSTALL_LIB_DIR}/python)
     _get_python_module_name(${LIBRARY_NAME} LIBRARY_INSTALLNAME)
 
     set(files_copied "")
@@ -367,7 +383,7 @@ function(_install_pyside_ui_files LIBRARY_NAME)
             FOLDER "${folder}"
     )
 
-    set(libPythonPrefix lib/python)
+    set(libPythonPrefix ${PXR_INSTALL_LIB_DIR}/python)
     _get_python_module_name(${LIBRARY_NAME} LIBRARY_INSTALLNAME)
 
     install(
@@ -1043,14 +1059,14 @@ function(_pxr_python_module NAME)
     # 'from pxr import X'. Additionally, python libraries always install
     # into the default lib install, not into the third_party subdirectory
     # or similar.
-    set(libInstallPrefix "lib/python/pxr/${pyModuleName}")
+    set(libInstallPrefix "${PXR_INSTALL_LIB_DIR}/python/pxr/${pyModuleName}")
 
     # Python modules need to be able to access their corresponding
     # wrapped library and the install lib directory.
     _pxr_init_rpath(rpath "${libInstallPrefix}")
     _pxr_add_rpath(rpath
         "${CMAKE_INSTALL_PREFIX}/${args_WRAPPED_LIB_INSTALL_PREFIX}")
-    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/lib")
+    _pxr_add_rpath(rpath "${CMAKE_INSTALL_PREFIX}/${PXR_INSTALL_LIB_DIR}")
     _pxr_install_rpath(rpath ${LIBRARY_NAME})
 
     _get_folder("_python" folder)
@@ -1126,11 +1142,11 @@ function(_pxr_python_module NAME)
     # This behavior prevents users from running strict builds with
     # PXR_STRICT_BUILD_MODE as the redefinition warnings would cause build
     # failures.
-    target_include_directories(${LIBRARY_NAME}
-        SYSTEM
-        PUBLIC
-            ${PYTHON_INCLUDE_DIRS}
-    )
+    # target_include_directories(${LIBRARY_NAME}
+    #     SYSTEM
+    #     PUBLIC
+    #         ${PYTHON_INCLUDE_DIRS}
+    # )
 
     install(
         TARGETS ${LIBRARY_NAME}
@@ -1208,13 +1224,15 @@ function(_pxr_library NAME)
 
     # Figure plugin/resource install paths
     if (isPlugin)
-        _get_install_dir("plugin" pluginInstallPrefix)
+    
+        _get_install_dir("${PXR_INSTALL_PLUGIN_DIR}" pluginInstallPrefix)
+
         if (NOT PXR_INSTALL_SUBDIR)
             # XXX --- Why this difference?
-            _get_install_dir("plugin/usd" pluginInstallPrefix)
+            _get_install_dir("${PXR_INSTALL_PLUGIN_DIR}/usd" pluginInstallPrefix)
         endif()
     else()
-        _get_install_dir("lib/usd" pluginInstallPrefix)
+        _get_install_dir("${PXR_INSTALL_LIB_DIR}/usd" pluginInstallPrefix)
     endif()
     if(args_SUBDIR)
         set(pluginInstallPrefix "${pluginInstallPrefix}/${args_SUBDIR}")
@@ -1294,7 +1312,7 @@ function(_pxr_library NAME)
     # Where do we install library to?
     _get_install_dir("include" headerInstallDir)
     _get_install_dir("include/${PXR_PREFIX}/${NAME}" headerInstallPrefix)
-    _get_install_dir("lib" libInstallPrefix)
+    _get_install_dir("${PXR_INSTALL_LIB_DIR}" libInstallPrefix)
     if(isPlugin)
         if(NOT isObject)
             # A plugin embedded in the monolithic library is found in

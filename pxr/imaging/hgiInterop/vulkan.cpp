@@ -15,6 +15,18 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 static const char* _vertexFullscreen =
+#if defined(__ANDROID__) || defined(ANDROID)
+    "#version 300 es\n"
+    "precision highp float;\n"
+    "layout (location = 0) in vec4 position;\n"
+    "layout (location = 1) in vec2 uvIn;\n"
+    "out vec2 uv;\n"
+    "void main(void)\n"
+    "{\n"
+    "    gl_Position = position;\n"
+    "    uv = uvIn;\n"
+    "}\n";
+#else
     "#version 120\n"
     "attribute vec4 position;\n"
     "attribute vec2 uvIn;\n"
@@ -24,8 +36,20 @@ static const char* _vertexFullscreen =
     "    gl_Position = position;\n"
     "    uv = uvIn;\n"
     "}\n";
+#endif
 
 static const char* _fragmentNoDepthFullscreen =
+#if defined(__ANDROID__) || defined(ANDROID)
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "in vec2 uv;\n"
+    "uniform sampler2D colorIn;\n"
+    "layout (location = 0) out vec4 fragColor;"
+    "void main(void)\n"
+    "{\n"
+    "    fragColor = texture(colorIn, uv);\n"
+    "}\n";
+#else
     "#version 120\n"
     "varying vec2 uv;\n"
     "uniform sampler2D colorIn;\n"
@@ -33,8 +57,23 @@ static const char* _fragmentNoDepthFullscreen =
     "{\n"
     "    gl_FragColor = texture2D(colorIn, uv);\n"
     "}\n";
+#endif
 
 static const char* _fragmentDepthFullscreen =
+#if defined(__ANDROID__) || defined(ANDROID)
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "in vec2 uv;\n"
+    "uniform sampler2D colorIn;\n"
+    "uniform sampler2D depthIn;\n"
+    "layout (location = 0) out vec4 fragColor;"
+    "void main(void)\n"
+    "{\n"
+    "    float depth = texture(depthIn, uv).r;\n"
+    "    fragColor = texture(colorIn, uv);\n"
+    "    gl_FragDepth = depth;\n"
+    "}\n";
+#else
     "#version 120\n"
     "varying vec2 uv;\n"
     "uniform sampler2D colorIn;\n"
@@ -45,6 +84,7 @@ static const char* _fragmentDepthFullscreen =
     "    gl_FragColor = texture2D(colorIn, uv);\n"
     "    gl_FragDepth = depth;\n"
     "}\n";
+#endif
 
 static uint32_t
 _CompileShader(const char* src, GLenum stage)

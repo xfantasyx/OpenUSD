@@ -90,6 +90,8 @@ HgiVulkanInstance::HgiVulkanInstance()
             VK_EXT_METAL_SURFACE_EXTENSION_NAME,
             // See: https://github.com/KhronosGroup/MoltenVK/blob/main/Docs/MoltenVK_Runtime_UserGuide.md#interacting-with-the-moltenvk-runtime
             VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
+        #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+            VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
         #else
             #error Unsupported Platform
         #endif

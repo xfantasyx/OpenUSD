@@ -647,7 +647,9 @@ nonLockingLinux__execve (const char *file,
 static int
 nonLockingExecv(const char *path, char *const argv[])
 {
-#if defined(ARCH_OS_LINUX)
+#if defined(__ANDROID__) || defined(ANDROID)
+     return nonLockingLinux__execve(path, argv, environ);
+#elif defined(ARCH_OS_LINUX)
      return nonLockingLinux__execve (path, argv, __environ);
 #else
      return execv(path, argv);

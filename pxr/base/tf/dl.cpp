@@ -16,6 +16,7 @@
 #include "pxr/base/tf/getenv.h"
 #include <string>
 #include <stdlib.h>
+#include "pxr/base/tf/stringUtils.h"
 
 using std::string;
 
@@ -23,9 +24,25 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 static bool _opening = false,
             _closing = false;
+static std::string _nativeLibsDir;
 
-bool
-Tf_DlOpenIsActive()
+#if defined(__ANDROID__) || defined(ANDROID)
+void Tf_SetNativeLibraryDir(const std::string& nativeLibDir)
+{
+    _nativeLibsDir = nativeLibDir;
+    if (!_nativeLibsDir.empty() && _nativeLibsDir.back() != '/' && _nativeLibsDir.back() != '\\')
+    {
+        _nativeLibsDir += "/";
+    }
+}
+
+std::string _GetNativeLibPath(const std::string& srcPath)
+{
+    return _nativeLibsDir + TfGetBaseName(srcPath);
+}
+#endif
+
+bool Tf_DlOpenIsActive()
 {
     return _opening;
 }
@@ -48,8 +65,12 @@ TfDlopen(
 
     // Try to open the dynamic library
     bool state = _opening;
-    _opening = true;
+    _opening   = true;
+#if defined(__ANDROID__) || defined(ANDROID)
+    void* handle = ArchLibraryOpen(_GetNativeLibPath(filename).c_str(), flag);
+#else
     void* handle = ArchLibraryOpen(filename.c_str(), flag);
+#endif
     _opening = state;
 
     TF_DEBUG(TF_DLOPEN).Msg("TfDlopen: [opened] '%s' (handle=%p)\n",
@@ -84,7 +105,7 @@ int
 TfDlclose(void* handle)
 {
     bool state = _closing;
-    _closing = true;
+    _closing   = true;
 
     TF_DEBUG(TF_DLCLOSE).Msg("TfDlclose: handle = %p\n", handle);
 

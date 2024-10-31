@@ -259,7 +259,11 @@ GlfGLQueryObject::~GlfGLQueryObject()
 void
 GlfGLQueryObject::BeginSamplesPassed()
 {
+#if defined(__ANDROID__) || defined(ANDROID)
+    Begin(GL_ANY_SAMPLES_PASSED);
+#else
     Begin(GL_SAMPLES_PASSED);
+#endif
 }
 
 void
@@ -270,7 +274,11 @@ GlfGLQueryObject::BeginPrimitivesGenerated()
 void
 GlfGLQueryObject::BeginTimeElapsed()
 {
+#if defined(__ANDROID__) || defined(ANDROID)
+
+#else
     Begin(GL_TIME_ELAPSED);
+#endif
 }
 
 void
@@ -294,24 +302,49 @@ GlfGLQueryObject::End()
 GLint64
 GlfGLQueryObject::GetResult()
 {
+#if defined(__ANDROID__) || defined(ANDROID)
+    GLuint value = 0;
+    if (_id)
+    {
+        glGetQueryObjectuiv(_id, GL_QUERY_RESULT, &value);
+    }
+    return value;
+#else
     GLint64 value = 0;
-    if (glGetQueryObjecti64v && _id) {
+    if (glGetQueryObjecti64v && _id)
+    {
         glGetQueryObjecti64v(_id, GL_QUERY_RESULT, &value);
     }
     return value;
+#endif
 }
 
 GLint64
 GlfGLQueryObject::GetResultNoWait()
 {
+#if defined(__ANDROID__) || defined(ANDROID)
+    GLuint value = 0;
+    if (_id)
+    {
+        glGetQueryObjectuiv(_id, GL_QUERY_RESULT_AVAILABLE, &value);
+        if (value == GL_TRUE)
+        {
+            glGetQueryObjectuiv(_id, GL_QUERY_RESULT, &value);
+        }
+    }
+    return value;
+#else
     GLint64 value = 0;
-    if (glGetQueryObjecti64v && _id) {
+    if (glGetQueryObjecti64v && _id)
+    {
         glGetQueryObjecti64v(_id, GL_QUERY_RESULT_AVAILABLE, &value);
-        if (value == GL_TRUE) {
+        if (value == GL_TRUE)
+        {
             glGetQueryObjecti64v(_id, GL_QUERY_RESULT, &value);
         }
     }
     return value;
+#endif
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

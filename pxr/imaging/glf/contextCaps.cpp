@@ -102,10 +102,15 @@ GlfContextCaps::_LoadCaps()
         glVersion = major * 100 + minor * 10;
     }
 
-    if (glVersion >= 320) {
+    if (glVersion >= 320)
+    {
+#if defined(__ANDROID__) || defined(ANDROID)
+        coreProfile = true;
+#else
         GLint profileMask = 0;
         glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profileMask);
         coreProfile = (profileMask & GL_CONTEXT_CORE_PROFILE_BIT);
+#endif
     }
     
     if (glVersion >= 300) {

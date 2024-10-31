@@ -53,18 +53,20 @@ _MakeNewPlatformDefaultHgi()
 
     PlugRegistry& plugReg = PlugRegistry::GetInstance();
 
-    const char* hgiType = 
-        #if defined(ARCH_OS_LINUX)
-            "HgiGL";
-        #elif defined(ARCH_OS_DARWIN)
-            "HgiMetal";
-        #elif defined(ARCH_OS_WINDOWS)
-            "HgiGL";
-        #else
-            ""; 
-            #error Unknown Platform
-            return nullptr;
-        #endif
+    const char* hgiType =
+#if defined(ARCH_OS_ANDROID)
+        "HgiVulkan";
+#elif defined(ARCH_OS_LINUX)
+        "HgiGL";
+#elif defined(ARCH_OS_DARWIN)
+        "HgiMetal";
+#elif defined(ARCH_OS_WINDOWS)
+        "HgiGL";
+#else
+        "";
+    #error Unknown Platform
+    return nullptr;
+#endif
 
     if (TfGetEnvSetting(HGI_ENABLE_VULKAN)) {
         #if defined(PXR_VULKAN_SUPPORT_ENABLED)

@@ -173,8 +173,14 @@ GlfSimpleShadowArray::BeginCapture(size_t index, bool clear)
 
     // depth 1.0 means infinity (no occluders).
     // This value is also used as a border color
+#if defined(__ANDROID__) || defined(ANDROID)
+    glDepthRangef(0, 0.99999);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+#else
     glDepthRange(0, 0.99999);
     glEnable(GL_DEPTH_CLAMP);
+#endif
 
     GLF_POST_PENDING_GL_ERRORS();
 }

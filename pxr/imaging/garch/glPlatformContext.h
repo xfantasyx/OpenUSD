@@ -15,7 +15,9 @@
 #include <cstddef>
 #include <functional>
 
-#if defined(ARCH_OS_LINUX)
+#if defined(ARCH_OS_ANDROID)
+    #include "pxr/imaging/garch/glPlatformContextAndroid.h"
+#elif defined(ARCH_OS_LINUX)
 
 #include "pxr/imaging/garch/glPlatformContextGLX.h"
 

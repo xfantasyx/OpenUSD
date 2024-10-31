@@ -11,7 +11,7 @@ pxr_plugin(${PXR_PACKAGE}
 
     INCLUDE_DIRS
         ${Boost_INCLUDE_DIRS}
-        ${PYTHON_INCLUDE_DIRS}
+        # ${PYTHON_INCLUDE_DIRS}
 
     CPPFILES
         fileFormat.cpp
