@@ -9,6 +9,7 @@
 #include "pxr/usd/pcp/primIndex.h"
 #include "pxr/usd/pcp/arc.h"
 #include "pxr/usd/pcp/cache.h"
+#include "pxr/usd/pcp/changes.h"
 #include "pxr/usd/pcp/dynamicFileFormatContext.h"
 #include "pxr/usd/pcp/composeSite.h"
 #include "pxr/usd/pcp/debugCodes.h"
@@ -2276,21 +2277,19 @@ _EvalRefOrPayloadArcs(PcpNodeRef node,
             layerStack = indexer->inputs.cache->ComputeLayerStack( 
                 layerStackIdentifier, &indexer->outputs->allErrors);
 
-            if (!PcpIsTimeScalingForLayerTimeCodesPerSecondDisabled()) {
-                // If the referenced or payloaded layer has a different TCPS
-                // than the source layer that introduces it, we apply the time
-                // scale between these TCPS values to the layer offset.
-                // Note that if the introducing layer is a layer stack sublayer,
-                // any TCPS scaling from the layer stack will already have been
-                // applied to the layer offset for the reference/payload.
-                const double srcTimeCodesPerSecond = 
-                    srcLayer->GetTimeCodesPerSecond();
-                const double destTimeCodesPerSecond =
-                    layerStack->GetTimeCodesPerSecond();
-                if (srcTimeCodesPerSecond != destTimeCodesPerSecond) {
-                    layerOffset.SetScale(layerOffset.GetScale() * 
-                        srcTimeCodesPerSecond / destTimeCodesPerSecond);
-                }
+            // If the referenced or payloaded layer has a different TCPS
+            // than the source layer that introduces it, we apply the time
+            // scale between these TCPS values to the layer offset.
+            // Note that if the introducing layer is a layer stack sublayer,
+            // any TCPS scaling from the layer stack will already have been
+            // applied to the layer offset for the reference/payload.
+            const double srcTimeCodesPerSecond = 
+                srcLayer->GetTimeCodesPerSecond();
+            const double destTimeCodesPerSecond =
+                layerStack->GetTimeCodesPerSecond();
+            if (srcTimeCodesPerSecond != destTimeCodesPerSecond) {
+                layerOffset.SetScale(layerOffset.GetScale() * 
+                    srcTimeCodesPerSecond / destTimeCodesPerSecond);
             }
         }
 
@@ -4719,18 +4718,11 @@ _EnforcePermissions(
 }
 
 void
-Pcp_RescanForSpecs(PcpPrimIndex *index, bool usd, bool updateHasSpecs)
-{
-    const std::vector<SdfLayerHandle> layersToIgnore;
-    Pcp_RescanForSpecs(index, usd, updateHasSpecs, layersToIgnore);
-}
-
-void
 Pcp_RescanForSpecs(
     PcpPrimIndex *index,
     bool usd,
     bool updateHasSpecs,
-    const std::vector<SdfLayerHandle>& layersToIgnore)
+    const PcpCacheChanges *cacheChanges = nullptr)
 {
     TfAutoMallocTag2 tag("Pcp", "Pcp_RescanForSpecs");
 
@@ -4741,7 +4733,8 @@ Pcp_RescanForSpecs(
             TF_FOR_ALL(nodeIt, index->GetNodeRange()) {
                 auto node = *nodeIt;
                 nodeIt->SetHasSpecs(PcpComposeSiteHasPrimSpecs(
-                    node.GetLayerStack(), node.GetPath(), layersToIgnore));
+                    node.GetLayerStack(), node.GetPath(), 
+                    cacheChanges->layersAffectedByMutingOrRemoval));
             }
         }
     } else {
@@ -4755,7 +4748,10 @@ Pcp_RescanForSpecs(
                     node.GetLayerStack()->GetLayers();
                 const SdfPath& path = node.GetPath();
                 for (size_t i = 0, n = layers.size(); i != n; ++i) {
-                    if (layers[i]->HasSpec(path)) {
+                    if (layers[i]->HasSpec(path) &&
+                        (!cacheChanges ||
+                          cacheChanges->layersAffectedByMutingOrRemoval
+                            .count(layers[i]) == 0)) {
                         nodeHasSpecs = true;
                         primSites.push_back(node.GetCompressedSdSite(i));
                     }

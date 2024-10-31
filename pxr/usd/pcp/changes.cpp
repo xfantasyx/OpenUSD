@@ -1411,30 +1411,6 @@ void PcpChanges::DidMuteAndUnmuteLayers(
     const std::vector<std::string>& layersToMute,
     const std::vector<std::string>& layersToUnmute)
 {
-    PcpCacheChanges& changes = _GetCacheChanges(cache);
-
-    // We first want to grab all layers that will be muted and unmuted and
-    // store them off.  We may need to refer to these vectors when processing
-    // changes to account for a layer's future state once these changes have
-    // been applied
-    for (const auto& layerId : layersToMute) { 
-        SdfLayerRefPtr layerToMute =
-            _LoadSublayerForChange(cache, layerId, _SublayerRemoved);
-        if (layerToMute) {
-            _lifeboat.Retain(layerToMute);
-            changes.layersToMute.emplace_back(layerToMute);
-        }
-    }
-    
-    for (const auto& layerId : layersToUnmute) { 
-        SdfLayerRefPtr layerToUnmute =
-            _LoadSublayerForChange(cache, layerId, _SublayerAdded);
-        if (layerToUnmute) {
-            _lifeboat.Retain(layerToUnmute);
-            changes.layersToUnmute.emplace_back(layerToUnmute);
-        }
-    }
-
     // Register changes for all computed layer stacks that are
     // affected by the newly muted/unmuted layers.
     for (const auto& layerToMute : layersToMute) {
@@ -1446,25 +1422,64 @@ void PcpChanges::DidMuteAndUnmuteLayers(
     }
 }
 
-void PcpChanges::_ProcessLayerStackAndDependencyChanges(
+void 
+PcpChanges::_MarkReferencingSitesAsSignificantlyChanged(
     const PcpCache* cache,
-    const PcpLayerStackPtrVector& layerStacks,
-    bool markRefsOrPayloadSitesAsChanged)
+    const PcpLayerStackPtrVector& layerStacks)
 {
     TRACE_FUNCTION();
 
-    const auto refOrPayloadChangeFunc = 
-        [this, cache](const SdfPath &depIndexPath, 
-                        const PcpNodeRef &node)
+    const PcpCacheChanges& cacheChanges = _GetCacheChanges(cache);
+
+    const auto refOrPayloadChangeFunc =
+        [this, cache](const SdfPath& depIndexPath, PcpArcType arcType)
         {
-            PcpArcType arcType = node.GetArcType();
-            if (arcType == PcpArcTypeReference || 
-                arcType == PcpArcTypePayload) 
-            {
+            if (arcType == PcpArcTypeReference ||
+                arcType == PcpArcTypePayload) {
                 DidChangeSignificantly(cache, depIndexPath);
             }
         };
 
+    for (const PcpLayerStackPtr& layerStack : layerStacks) {
+        PcpDependencyVector deps = cache->FindSiteDependencies(
+            layerStack,
+            SdfPath::AbsoluteRootPath(), 
+            PcpDependencyTypeAnyIncludingVirtual,
+            /* recurseOnSite */ true,
+            /* recurseOnIndex */ false,
+            /* filter */ true);
+
+        for(const PcpDependency &dep: deps) {
+            // If this layer stack no longer has any opinions at dep.sitePath,
+            // composed prims that reference this site must be recomputed to
+            // detect the broken reference.
+            if (PcpComposeSiteHasPrimSpecs(
+                layerStack, dep.sitePath, 
+                cacheChanges.layersAffectedByMutingOrRemoval)) {
+                continue;
+            }
+
+            Pcp_ForEachDependentNode(
+                dep.sitePath, layerStack, dep.indexPath, *cache,
+                [&](const SdfPath &depIndexPath, const PcpNodeRef &node)
+                {
+                    refOrPayloadChangeFunc(depIndexPath, node.GetArcType());
+                },
+                [&](const SdfPath& depIndexPath, const PcpCulledDependency& dep)
+                {
+                    refOrPayloadChangeFunc(depIndexPath, dep.arcType);
+                }
+            );
+        }
+    }
+}
+
+void 
+PcpChanges::_ProcessLayerStackAndDependencyChanges(
+    const PcpCache* cache,
+    const PcpLayerStackPtrVector& layerStacks)
+{
+    TRACE_FUNCTION();
 
     for (const PcpLayerStackPtr& layerStack : layerStacks) {
         _DidChangeLayerStack(cache,
@@ -1477,28 +1492,18 @@ void PcpChanges::_ProcessLayerStackAndDependencyChanges(
             layerStack,
             SdfPath::AbsoluteRootPath(), 
             PcpDependencyTypeAnyIncludingVirtual,
-            /* recurseOnSite */ true,
-            /* recurseOnIndex */ true,
+            /* recurseOnSite */ false,
+            /* recurseOnIndex */ false,
             /* filter */ true);
 
         for(const PcpDependency &dep: deps) {
-            // This ensures that all sites which reference this layer are
-            // also marked as having changed significantly.
-            if (markRefsOrPayloadSitesAsChanged && 
-                PcpComposeSiteHasPrimSpecs(layerStack, dep.sitePath))
-            {
-                Pcp_ForEachDependentNode(dep.sitePath, layerStack,
-                                        dep.indexPath,
-                                        *cache, refOrPayloadChangeFunc);
-            }
-
             // We also need to mark dependencies spec stacks as changed due to
             // the fact that the addition or removal of layers will result in
             // the need of prim stack indicies to be updated.
             // Note that property indexes don't have to be updated because they
             // hold on to spec objects directly instead of being index-based.
             if (dep.indexPath.IsAbsoluteRootOrPrimPath()) {
-                _DidChangeSpecStackInternal(cache, dep.indexPath);
+                _DidChangeSpecStackAndChildrenInternal(cache, dep.indexPath);
             }
         }
     }
@@ -1513,12 +1518,24 @@ PcpChanges::_DidMuteLayer(
     std::string summary;
     std::string* debugSummary = TfDebug::IsEnabled(PCP_CHANGES) ? &summary : 0;
 
-    PcpCacheChanges& cacheChanges = _GetCacheChanges(cache);
-
     const SdfLayerRefPtr mutedLayer = 
         _LoadSublayerForChange(cache, layerId, _SublayerRemoved);
     const PcpLayerStackPtrVector& layerStacks = 
         cache->FindAllLayerStacksUsingLayer(mutedLayer);
+
+    PcpCacheChanges& cacheChanges = _GetCacheChanges(cache);
+    if (mutedLayer) {
+        _lifeboat.Retain(mutedLayer);
+        cacheChanges.didMuteOrUnmuteNonEmptyLayer |= !mutedLayer->IsEmpty();
+
+        // Track sublayers that have been muted separately. These
+        // layers should no longer contribute opinions to the composed
+        // scene; during change processing, clients that need to
+        // recompute state (e.g. prim stacks) must explicitly ignore
+        // these layers. This is because these layers won't be removed
+        // from layer stacks until change processing is complete.
+        cacheChanges.layersAffectedByMutingOrRemoval.insert(mutedLayer);
+    }
 
     PCP_APPEND_DEBUG("  Did mute layer @%s@\n", layerId.c_str());
 
@@ -1547,14 +1564,10 @@ PcpChanges::_DidMuteLayer(
         DidChange(cache, changes);
         cacheChanges.layerChangeListVec.emplace_back(
             std::move(changes.front()));
-        _lifeboat.Retain(mutedLayer);
 
-        _ProcessLayerStackAndDependencyChanges(cache, layerStacks, 
-            /*markRefsOrPayloadSitesAsChanged*/ true);
+        _ProcessLayerStackAndDependencyChanges(cache, layerStacks);
+        _MarkReferencingSitesAsSignificantlyChanged(cache, layerStacks);
     }
-
-    cacheChanges.didMuteOrUnmuteNonEmptyLayer |= 
-        mutedLayer ? !mutedLayer->IsEmpty() : false;
 
     if (debugSummary && !debugSummary->empty()) {
         TfDebug::Helper().Msg("PcpChanges::_DidMuteLayer\n%s",
@@ -1571,12 +1584,16 @@ PcpChanges::_DidUnmuteLayer(
     std::string summary;
     std::string* debugSummary = TfDebug::IsEnabled(PCP_CHANGES) ? &summary : 0;
 
-    PcpCacheChanges& cacheChanges = _GetCacheChanges(cache);
-
     const SdfLayerRefPtr unmutedLayer = 
         _LoadSublayerForChange(cache, layerId, _SublayerAdded);
     const PcpLayerStackPtrVector& layerStacks = 
         cache->_layerStackCache->FindAllUsingMutedLayer(layerId);
+
+    PcpCacheChanges& cacheChanges = _GetCacheChanges(cache);
+    if (unmutedLayer) {
+        _lifeboat.Retain(unmutedLayer);
+        cacheChanges.didMuteOrUnmuteNonEmptyLayer |= !unmutedLayer->IsEmpty();
+    }
 
     PCP_APPEND_DEBUG("  Did unmute layer @%s@\n", layerId.c_str());
 
@@ -1610,14 +1627,10 @@ PcpChanges::_DidUnmuteLayer(
         DidChange(cache, changes);
         cacheChanges.layerChangeListVec.emplace_back(
             std::move(changes.front()));
-        _lifeboat.Retain(unmutedLayer);
 
-        _ProcessLayerStackAndDependencyChanges(cache, layerStacks, 
-            /*markRefsOrPayloadSitesAsChanged*/ true);
+        _ProcessLayerStackAndDependencyChanges(cache, layerStacks);
+        _MarkReferencingSitesAsSignificantlyChanged(cache, layerStacks);
     }
-
-    cacheChanges.didMuteOrUnmuteNonEmptyLayer |= 
-        unmutedLayer ? !unmutedLayer->IsEmpty() : false;
 
     if (debugSummary && !debugSummary->empty()) {
         TfDebug::Helper().Msg("PcpChanges::_DidUnmuteLayer\n%s",
@@ -1762,7 +1775,9 @@ static bool
 _NoLongerHasAnySpecs(const PcpCacheChanges& changes, const PcpPrimIndex& primIndex)
 {
     for (const PcpNodeRef &node: primIndex.GetNodeRange()) {
-        if (PcpComposeSiteHasPrimSpecs(node.GetLayerStack(), node.GetPath(), changes.layersToMute)) {
+        if (PcpComposeSiteHasPrimSpecs(
+                node.GetLayerStack(), node.GetPath(), 
+                changes.layersAffectedByMutingOrRemoval)) {
             return false;
         }
     }
@@ -2182,8 +2197,21 @@ PcpChanges::_DidAddOrRemoveSublayer(
             _SublayerChangeType sublayerChange)
         {
             PcpCacheChanges& cacheChanges = _GetCacheChanges(cache);
-            cacheChanges.didAddOrRemoveNonEmptySublayer |= 
-                sublayer && !sublayer->IsEmpty();
+            if (sublayer) {
+                _lifeboat.Retain(sublayer);
+                cacheChanges.didAddOrRemoveNonEmptySublayer |= !sublayer->IsEmpty();
+
+                // Track sublayers that have been removed separately. These
+                // layers should no longer contribute opinions to the composed
+                // scene; during change processing, clients that need to
+                // recompute state (e.g. prim stacks) must explicitly ignore
+                // these layers. This is because these layers won't be removed
+                // from layer stacks until change processing is complete.
+                if (sublayerChange == _SublayerRemoved) {
+                    cacheChanges.layersAffectedByMutingOrRemoval
+                        .insert(sublayer);
+                }
+            }
 
             if (!TfGetEnvSetting(
                     PCP_ENABLE_MINIMAL_CHANGES_FOR_LAYER_OPERATIONS) ||
@@ -2218,14 +2246,12 @@ PcpChanges::_DidAddOrRemoveSublayer(
                     empty, /*compareFieldValues*/ false)));
             }
 
-            _ProcessLayerStackAndDependencyChanges(cache, layerStacks, 
-                /*markRefsOrPayloadSitesAsChanged*/ false);
+            _ProcessLayerStackAndDependencyChanges(cache, layerStacks);
 
             DidChange(cache, changes);
 
             cacheChanges.layerChangeListVec.emplace_back(
                 std::move(changes.front()));
-            _lifeboat.Retain(sublayer);
 
             return true;
         };
@@ -2833,6 +2859,13 @@ PcpChanges::_DidChangeSpecStackInternal(
     const PcpCache* cache, const SdfPath& path)
 {
     _GetCacheChanges(cache)._didChangeSpecsInternal.insert(path);
+}
+
+void 
+PcpChanges::_DidChangeSpecStackAndChildrenInternal(
+    const PcpCache* cache, const SdfPath& path)
+{
+    _GetCacheChanges(cache)._didChangeSpecsAndChildrenInternal.insert(path);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

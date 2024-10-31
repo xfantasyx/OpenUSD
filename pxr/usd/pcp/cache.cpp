@@ -1037,8 +1037,8 @@ PcpCache::Apply(const PcpCacheChanges& changes, PcpLifeboat* lifeboat)
                 // we may have blown the prim index so check that it exists.
                 if (PcpPrimIndex* primIndex = _GetPrimIndex(path)) {
                     Pcp_RescanForSpecs(primIndex, IsUsd(),
-                                       /* updateHasSpecs */ true, 
-                                       changes.layersToMute);
+                                       /* updateHasSpecs */ true,
+                                       &changes);
 
                     // If there are no specs left then we can discard the
                     // prim index.
@@ -1071,6 +1071,13 @@ PcpCache::Apply(const PcpCacheChanges& changes, PcpLifeboat* lifeboat)
 
         TF_FOR_ALL(i, changes._didChangeSpecsInternal) {
             updateSpecStacks(*i);
+        }
+
+        TF_FOR_ALL(i, changes._didChangeSpecsAndChildrenInternal) {
+            auto range = _primIndexCache.FindSubtreeRange(*i);
+            for (auto i = range.first; i != range.second; ++i) {
+                updateSpecStacks(i->first);
+            }
         }
 
         // Fix the keys for any prim or property under any of the renamed

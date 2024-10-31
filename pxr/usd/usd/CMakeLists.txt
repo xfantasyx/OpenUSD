@@ -146,6 +146,7 @@ pxr_library(usd
         wrapTimeCode.cpp
         wrapUsdFileFormat.cpp
         wrapUtils.cpp
+        wrapValidationContext.cpp
         wrapValidationError.cpp
         wrapValidationRegistry.cpp
         wrapValidator.cpp
@@ -234,8 +235,13 @@ pxr_test_scripts(
     testenv/testUsdMetadata.py
     testenv/testUsdModel.py
     testenv/testUsdNamespaceEditor.py
+    testenv/testUsdNamespaceEditorDependentEditsBase.py:testUsdNamespaceEditorDependentEditsBase.py
+    testenv/testUsdNamespaceEditorDependentEditsBasicReferencesAndPayloads.py
+    testenv/testUsdNamespaceEditorDependentEditsBasicSublayers.py
     testenv/testUsdNamespaceEditorProperties.py
+    testenv/testUsdNamespaceEditorTargetPathFixup.py
     testenv/testUsdNotices.py
+    testenv/testUsdObjectsChangedNotices.py
     testenv/testUsdOpaqueAttributes.py
     testenv/testUsdPathExpressionAttrs.py
     testenv/testUsdPayloads.py
@@ -263,6 +269,7 @@ pxr_test_scripts(
     testenv/testUsdTimeSamples.py
     testenv/testUsdTimeValueAuthoring.py
     testenv/testUsdUsdzFileFormat.py
+    testenv/testUsdValidationContextPy.py
     testenv/testUsdValidationError.py
     testenv/testUsdValidationRegistryPy.py
     testenv/testUsdValidatorMetadata.py
@@ -293,6 +300,16 @@ pxr_build_test_shared_lib(TestUsdResolverChangedResolver
 
     CPPFILES
         testenv/TestUsdResolverChangedResolver.cpp
+)
+
+pxr_build_test_shared_lib(TestUsdValidationContextValidators
+    INSTALL_PREFIX UsdPlugins
+    LIBRARIES
+        tf
+        usd
+
+    CPPFILES
+        testenv/testUsdValidationContextValidators.cpp
 )
 
 pxr_build_test_shared_lib(TestUsdValidationRegistryPy
@@ -662,6 +679,11 @@ pxr_install_test_dir(
 )
 
 pxr_install_test_dir(
+    SRC testenv/testUsdNamespaceEditorTargetPathFixup
+    DEST testUsdNamespaceEditorTargetPathFixup
+)
+
+pxr_install_test_dir(
     SRC testenv/testUsdPrims.testenv
     DEST testUsdPrims
 )
@@ -784,6 +806,11 @@ pxr_install_test_dir(
 pxr_install_test_dir(
     SRC testenv/testUsdValidationContext
     DEST testUsdValidationContext
+)
+
+pxr_install_test_dir(
+    SRC testenv/testUsdValidationContext
+    DEST testUsdValidationContextPy
 )
 
 pxr_install_test_dir(
@@ -1051,22 +1078,22 @@ pxr_register_test(testUsdValidator
     EXPECTED_RETURN_CODE 0
 )
 
-pxr_register_test(testUsdValidationContext
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContext"
-    EXPECTED_RETURN_CODE 0
-)
-
 pxr_register_test(testUsdValidationRegistry
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationRegistry"
     EXPECTED_RETURN_CODE 0
 )
 
-# This test relies on a plugin built specifically for this test.
-# The build system currently doesn't support this for static library
-# builds, so we only enable this test on shared library builds.
+#The following tests rely on plugins built specifically for them.
+#The build system currently doesn't support test-specific plugins
+#for static library builds, so we only enable these tests for
+#shared library builds.
 if (BUILD_SHARED_LIBS)
     pxr_register_test(testUsdResolverChanged
         COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdResolverChanged"
+        EXPECTED_RETURN_CODE 0
+    )
+    pxr_register_test(testUsdValidationContext
+        COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContext"
         EXPECTED_RETURN_CODE 0
     )
 endif()
@@ -1120,8 +1147,6 @@ pxr_register_test(testUsdTimeOffsets
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdTimeOffsets"
     EXPECTED_RETURN_CODE 0
-    ENV
-        PCP_DISABLE_TIME_SCALING_BY_LAYER_TCPS=0
 )
 
 pxr_register_test(testUsdPrimRange
@@ -1261,15 +1286,39 @@ pxr_register_test(testUsdNotices
     EXPECTED_RETURN_CODE 0
 )
 
+pxr_register_test(testUsdObjectsChangedNotices
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdObjectsChangedNotices"
+    EXPECTED_RETURN_CODE 0
+)
+
 pxr_register_test(testUsdNamespaceEditor
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNamespaceEditor"
     EXPECTED_RETURN_CODE 0
 )
 
+pxr_register_test(testUsdNamespaceEditorDependentEditsBasicReferencesAndPayloads
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNamespaceEditorDependentEditsBasicReferencesAndPayloads"
+    EXPECTED_RETURN_CODE 0
+)
+
+pxr_register_test(testUsdNamespaceEditorDependentEditsBasicSublayers
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNamespaceEditorDependentEditsBasicSublayers"
+    EXPECTED_RETURN_CODE 0
+)
+
 pxr_register_test(testUsdNamespaceEditorProperties
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNamespaceEditorProperties"
+    EXPECTED_RETURN_CODE 0
+)
+
+pxr_register_test(testUsdNamespaceEditorTargetPathFixup
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdNamespaceEditorTargetPathFixup"
     EXPECTED_RETURN_CODE 0
 )
 
@@ -1323,15 +1372,11 @@ pxr_register_test(testUsdTimeValueAuthoring
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdTimeValueAuthoring"
     EXPECTED_RETURN_CODE 0
-    ENV
-        PCP_DISABLE_TIME_SCALING_BY_LAYER_TCPS=0
 )
 
 pxr_register_test(testUsdTimeValueAuthoringCpp
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdTimeValueAuthoringCpp"
     EXPECTED_RETURN_CODE 0
-    ENV
-        PCP_DISABLE_TIME_SCALING_BY_LAYER_TCPS=0
 )
 
 pxr_register_test(testUsdUsdzFileFormat
@@ -1390,11 +1435,18 @@ pxr_register_test(testUsdValidationError
     EXPECTED_RETURN_CODE 0
 )
 
+pxr_register_test(testUsdValidationContextPy
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContextPy"
+    EXPECTED_RETURN_CODE 0
+)
+
 pxr_register_test(testUsdValidationRegistryPy
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationRegistryPy"
     EXPECTED_RETURN_CODE 0
 )
+
 pxr_register_test(testUsdUsdzBugGHSA01
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdUsdzBugGHSA01"
     EXPECTED_RETURN_CODE 0
