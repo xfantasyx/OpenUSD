@@ -377,6 +377,11 @@ Using the Schema Classes
     * Copying :filename:`usdSchemaExamples.so` (on Windows, 
       :filename:`usdSchemaExamples.dll` and :filename:`.lib`) and the 
       :filename:`usdSchemaExamples` directory to :filename`<prefix>/plugin/usd`
+
+    * You may encounter an :filename:`ImportError DLL load failed` when running from
+      Python 3.8+ on Windows. This is due to the DLL directory not being added to
+      trusted locations and can be resolved by manually adding the :filename:`resources`
+      directory before import via :filename:`os.add_dll_directory`.
    
 Create a usd file named Test.usda with the following content:
 
