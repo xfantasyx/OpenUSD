@@ -378,7 +378,7 @@ Using the Schema Classes
       :filename:`usdSchemaExamples.dll` and :filename:`.lib`) and the 
       :filename:`usdSchemaExamples` directory to :filename`<prefix>/plugin/usd`
 
-    * You may encounter an :filename:`ImportError DLL load failed` when running from
+    * You may encounter :filename:`ImportError DLL load failed` when running from
       Python 3.8+ on Windows. This is due to the DLL directory not being added to
       trusted locations and can be resolved by manually adding the :filename:`resources`
       directory before import via :filename:`os.add_dll_directory`.
