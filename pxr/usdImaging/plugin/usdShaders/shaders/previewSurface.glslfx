@@ -78,7 +78,9 @@ surfaceShader(vec4 Peye, vec3 Neye, vec4 color, vec4 patchCoord)
     // we can compute a color based on all the material parameters which we can
     // then apply opacity to.
 #ifdef diffuseColor_IS_PREMULTIPLIED
-    diffuseColor.rgb /= opacity;
+    if (opacity > 0) {
+        diffuseColor.rgb /= opacity;
+    }
 #endif
 
     // Evaluate all lights.
