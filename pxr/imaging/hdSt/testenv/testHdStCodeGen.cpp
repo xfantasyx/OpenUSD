@@ -65,7 +65,8 @@ TF_DEFINE_PRIVATE_TOKENS(
 );
 
 static bool
-CodeGenTest(HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
+CodeGenTest(HdStResourceRegistrySharedPtr const &registry,
+    HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
 {
     TfErrorMark mark;
 
@@ -74,14 +75,6 @@ CodeGenTest(HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
     sharedData.instancerLevels = 0;
     HdStDrawItem drawItem(&sharedData);
 
-    static HgiUniquePtr hgi = Hgi::CreatePlatformDefaultHgi();
-    static HdDriver driver{HgiTokens->renderDriver, VtValue(hgi.get())};
-    static HdStRenderDelegate renderDelegate;
-    static std::unique_ptr<HdRenderIndex> index(
-        HdRenderIndex::New(&renderDelegate, {&driver}));
-    HdStResourceRegistrySharedPtr const & registry =
-        std::static_pointer_cast<HdStResourceRegistry>(
-            index->GetResourceRegistry());
 
     HdDrawingCoord *drawingCoord = drawItem.GetDrawingCoord();
 
@@ -309,10 +302,11 @@ CodeGenTest(HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
 }
 
 bool
-TestShader(HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
+TestShader(HdStResourceRegistrySharedPtr const &registry,
+    HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
 {
     bool success = true;
-    success &= CodeGenTest(key, instance, smoothNormals);
+    success &= CodeGenTest(registry, key, instance, smoothNormals);
     return success;
 }
 
@@ -358,9 +352,19 @@ int main(int argc, char *argv[])
         }
     }
 
+    HgiUniquePtr const hgi = Hgi::CreatePlatformDefaultHgi();
+    HdDriver driver{HgiTokens->renderDriver, VtValue(hgi.get())};
+    HdStRenderDelegate renderDelegate;
+    std::unique_ptr<HdRenderIndex> const index(
+        HdRenderIndex::New(&renderDelegate, {&driver}));
+    HdStResourceRegistrySharedPtr const registry =
+        std::static_pointer_cast<HdStResourceRegistry>(
+            index->GetResourceRegistry());
+
     // mesh
     if (mesh) {
         success &= TestShader(
+            registry,
             HdSt_MeshShaderKey(
                 HdSt_GeometricShader::PrimitiveType::PRIM_MESH_COARSE_TRIANGLES, 
                 /* shadingTerminal */ TfToken(), 
@@ -386,6 +390,7 @@ int main(int argc, char *argv[])
                 /* surfaceEdgeIds */ true),
                 instance, smoothNormals);
         success &= TestShader(
+            registry,
             HdSt_MeshShaderKey(
                 HdSt_GeometricShader::PrimitiveType::PRIM_MESH_COARSE_QUADS, 
                 /* shadingTerminal */ TfToken(), 
@@ -414,6 +419,7 @@ int main(int argc, char *argv[])
     // curves
     if (curves) {
         success &= TestShader(
+            registry,
             HdSt_BasisCurvesShaderKey(HdTokens->cubic,
                             HdTokens->bezier,
                             HdSt_BasisCurvesShaderKey::WIRE,
@@ -427,7 +433,8 @@ int main(int argc, char *argv[])
 
     // points
     if (points) {
-        success &= TestShader(HdSt_PointsShaderKey(),
+        success &= TestShader(registry,
+                              HdSt_PointsShaderKey(),
                               instance, false);
     }
 
