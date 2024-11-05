@@ -733,7 +733,7 @@ function(pxr_register_test TEST_NAME)
             EXPECTED_RETURN_CODE
             TESTENV
             WARN WARN_PERCENT HARD_WARN FAIL FAIL_PERCENT HARD_FAIL)
-    set(MULTI_VALUE_ARGS DIFF_COMPARE IMAGE_DIFF_COMPARE ENV PRE_PATH POST_PATH)
+    set(MULTI_VALUE_ARGS DIFF_COMPARE DIFF_COMPARE_OPTIONS IMAGE_DIFF_COMPARE ENV PRE_PATH POST_PATH)
 
     cmake_parse_arguments(bt
         "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}"
@@ -805,8 +805,10 @@ function(pxr_register_test TEST_NAME)
     set(testWrapperCmd ${testWrapperCmd} --testenv-dir=${testenvDir})
 
     if (bt_DIFF_COMPARE)
+        set(compareOptions ${bt_DIFF_COMPARE_OPTIONS})
+        list(TRANSFORM compareOptions PREPEND --diff-compare-options=)
         foreach(compareFile ${bt_DIFF_COMPARE})
-            set(testWrapperCmd ${testWrapperCmd} --diff-compare=${compareFile})
+            set(testWrapperCmd ${testWrapperCmd} --diff-compare=${compareFile} ${compareOptions})
         endforeach()
     endif()
 

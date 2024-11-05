@@ -24,6 +24,7 @@ from __future__ import print_function
 import argparse
 import glob
 import os
+import itertools
 import platform
 import shlex
 import shutil
@@ -41,6 +42,9 @@ def _parseArgs():
             action='append',
             help=('Compare output file with a file in the baseline-dir of the '
                   'same name'))
+    parser.add_argument('--diff-compare-options', default=[], type=str,
+            action='append',
+            help='Options for the diff tool')
     parser.add_argument('--image-diff-compare', default=[], type=str,
                         action='append',
                         help=('Compare output image with an image in the baseline '
@@ -153,15 +157,29 @@ def _cleanOutput(pathPattern, fileName, verbose):
     _stripPath(fileName, pathPattern)
     return True
 
-def _diff(fileName, baselineDir, verbose, failuresDir=None):
+def _diff(fileName, baselineDir, diffOptions, verbose, failuresDir=None):
     # Use the diff program or equivalent, rather than filecmp or similar
     # because it's possible we might want to specify other diff programs
     # in the future.
+
     import platform
-    if platform.system() == 'Windows':
-        diff = 'fc.exe'
-    else:
-        diff = '/usr/bin/diff'
+    isWindows = platform.system() == 'Windows';
+
+    diffTool = shutil.which('diff')
+    if not diffTool and isWindows:
+        gitExe = shutil.which('git')
+        if gitExe:
+            # On Windows, diff is bundled with Git.
+            # git.exe should be found here: <prefix>/Git/cmd/git.exe
+            # And diff.exe should be here: <prefix>/Git/usr/bin/diff.exe
+            gitToolsPath = os.path.normpath(os.path.join(os.path.dirname(gitExe),
+                                                         '..', 'usr', 'bin'))
+            diffTool = shutil.which('diff', path=gitToolsPath)
+
+    if not diffTool:
+        sys.stderr.write(
+            "Error: could not find \"diff\" tool. Make sure it's in your PATH.\n")
+        return False
 
     filesToDiff = glob.glob(fileName)
     if not filesToDiff:
@@ -169,9 +187,15 @@ def _diff(fileName, baselineDir, verbose, failuresDir=None):
             "Error: could not files matching {0} to diff".format(fileName))
         return False
 
+
+    options = list(itertools.chain.from_iterable([shlex.split(option)
+                                                  for option in diffOptions]))
+    if isWindows:
+        options.append('--strip-trailing-cr')
+
     for fileToDiff in filesToDiff:
         baselineFile = _resolvePath(baselineDir, fileToDiff)
-        cmd = [diff, baselineFile, fileToDiff]
+        cmd = [diffTool, *options, baselineFile, fileToDiff]
         if verbose:
             print("diffing with {0}".format(cmd))
 
@@ -413,8 +437,8 @@ if __name__ == '__main__':
             os.environ.get('PXR_CTEST_RUN_ID', 'NOT_RUN_FROM_CTEST'))
     if args.diff_compare:
         for diff in args.diff_compare:
-            if not _diff(diff, args.baseline_dir, args.verbose,
-                         failuresDir=failuresDir):
+            if not _diff(diff, args.baseline_dir, args.diff_compare_options,
+                         args.verbose, failuresDir=failuresDir):
                 sys.stderr.write('Error: diff for {0} failed '
                                  '(DIFF_COMPARE).'.format(diff))
                 sys.exit(1)
