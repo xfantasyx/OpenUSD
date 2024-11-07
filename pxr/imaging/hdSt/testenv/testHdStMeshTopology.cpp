@@ -49,12 +49,21 @@ TF_DEFINE_PRIVATE_TOKENS(
     ((rightHanded, "rightHanded"))
 );
 
-template <typename T>
+template <typename T, size_t N>
 static VtArray<T>
-_BuildArray(T values[], int numValues)
+_BuildArray(T (&values)[N])
 {
-    VtArray<T> result(numValues);
-    std::copy(values, values+numValues, result.begin());
+    VtArray<T> result(N);
+    std::copy(values, values+N, result.begin());
+    return result;
+}
+
+template <typename T, size_t N>
+static VtArray<T>
+_BuildArray(const std::array<T, N>& values)
+{
+    VtArray<T> result(N);
+    std::copy(values.begin(), values.end(), result.begin());
     return result;
 }
 
@@ -141,17 +150,17 @@ _CompareFaceVarying(std::string const &name,
 
 #define COMPARE_INDICES(name, orientation, numVerts, verts, expected) \
     _CompareIndices(name, orientation, \
-                   _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)), \
-                   _BuildArray(verts, sizeof(verts)/sizeof(int)), \
+                   _BuildArray(numVerts), \
+                   _BuildArray(verts), \
                     /*holes=*/VtIntArray(),                             \
-                   _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+                   _BuildArray(expected))
 
 #define COMPARE_INDICES_HOLE(name, orientation, numVerts, verts, holes, expected) \
     _CompareIndices(name, orientation,                                  \
-                    _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)), \
-                    _BuildArray(verts, sizeof(verts)/sizeof(int)),      \
-                    _BuildArray(holes, sizeof(holes)/sizeof(int)),      \
-                    _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+                    _BuildArray(numVerts), \
+                    _BuildArray(verts),      \
+                    _BuildArray(holes),      \
+                    _BuildArray(expected))
 
 template <typename Vec3Type>
 static bool
@@ -215,10 +224,10 @@ _CompareSmoothNormals(std::string const & name,
 
 #define COMPARE_SMOOTH_NORMALS(name, orientation, numVerts, verts, points, expected) \
     _CompareSmoothNormals(name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected))
 
 template <typename Vec3Type>
 bool
@@ -252,10 +261,10 @@ _CompareFlatNormals(std::string const & name,
 
 #define COMPARE_FLAT_NORMALS(name, orientation, numVerts, verts, points, expected) \
     _CompareFlatNormals(name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected))
 
 template <typename Vec3Type>
 bool
@@ -339,10 +348,10 @@ _CompareGpuSmoothNormals(std::string const & name,
 
 #define COMPARE_GPU_SMOOTH_NORMALS(name, orientation, numVerts, verts, points, expected) \
     _CompareGpuSmoothNormals(name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected))
 
 template <typename Vec3Type>
 bool
@@ -443,25 +452,25 @@ _CompareGpuFlatNormals(std::string const & name,
 
 #define COMPARE_GPU_FLAT_NORMALS_TRI(name, orientation, numVerts, verts, points, expected) \
     _CompareGpuFlatNormals(name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])), false)
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected), false)
 
 #define COMPARE_GPU_FLAT_NORMALS_QUAD(name, orientation, numVerts, verts, points, expected) \
     _CompareGpuFlatNormals(name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])), true)
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected), true)
 
 bool
 BasicTest()
 {
     {
-        int numVerts[] = {};
-        int verts[] = {};
-        GfVec3i expected[] = { };
+        std::array<int, 0> numVerts = {};
+        std::array<int, 0> verts = {};
+        std::array<GfVec3i, 0> expected = { };
         if (!COMPARE_INDICES("empty",
                 _tokens->rightHanded, numVerts, verts, expected)) {
             return false;
@@ -577,10 +586,10 @@ bool
 ComputeNormalsTest()
 {
     {
-        int numVerts[] = {};
-        int verts[] = {};
-        GfVec3f points[] = {};
-        GfVec3f expectedNormals[] = {};
+        std::array<int, 0> numVerts = {};
+        std::array<int, 0> verts = {};
+        std::array<GfVec3f, 0> points = {};
+        std::array<GfVec3f, 0> expectedNormals = {};
         if (!COMPARE_SMOOTH_NORMALS("empty", _tokens->rightHanded,
                 numVerts, verts, points, expectedNormals)) {
             return false;
@@ -588,13 +597,13 @@ ComputeNormalsTest()
     }
     {
         int numVerts[] = {3};
-        int verts[] = {};
+        std::array<int, 0> verts = {};
         GfVec3f points[] = {
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 0.0, 0.0, 2.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        GfVec3f expectedNormals[] = {};
+        std::array<GfVec3f, 0> expectedNormals = {};
         if (!COMPARE_SMOOTH_NORMALS(
                 "missing_faceVertexIndices",_tokens->rightHanded,
                 numVerts, verts, points, expectedNormals)) {
@@ -910,11 +919,11 @@ FaceVaryingTest()
                          17, 18, 19, 17, 19, 20 };
 
     if (!_CompareFaceVarying("FaceVarying", _tokens->rightHanded,
-                             _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)),
-                             _BuildArray(verts, sizeof(verts)/sizeof(int)),
-                             _BuildArray(hole, sizeof(hole)/sizeof(int)),
-                             _BuildArray(fvarValues, sizeof(fvarValues)/sizeof(float)),
-                             _BuildArray(expected, sizeof(expected)/sizeof(float)))) {
+                             _BuildArray(numVerts),
+                             _BuildArray(verts),
+                             _BuildArray(hole),
+                             _BuildArray(fvarValues),
+                             _BuildArray(expected))) {
         return false;
     }
     return true;
@@ -955,18 +964,18 @@ InvalidTopologyTest()
     };
 
     if (!_CompareIndices("Invalid", _tokens->rightHanded,
-                         _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)),
-                         _BuildArray(verts, sizeof(verts)/sizeof(int)),
-                         _BuildArray(hole, sizeof(hole)/sizeof(int)),
-                         _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))) {
+                         _BuildArray(numVerts),
+                         _BuildArray(verts),
+                         _BuildArray(hole),
+                         _BuildArray(expected))) {
         return false;
     }
     if (!_CompareFaceVarying("InvalidFaceVarying", _tokens->rightHanded,
-                             _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)),
-                             _BuildArray(verts, sizeof(verts)/sizeof(int)),
-                             _BuildArray(hole, sizeof(hole)/sizeof(int)),
-                             _BuildArray(fvarValues, sizeof(fvarValues)/sizeof(float)),
-                             _BuildArray(fvarExpected, sizeof(fvarExpected)/sizeof(float)))) {
+                             _BuildArray(numVerts),
+                             _BuildArray(verts),
+                             _BuildArray(hole),
+                             _BuildArray(fvarValues),
+                             _BuildArray(fvarExpected))) {
         return false;
     }
 
@@ -1009,4 +1018,3 @@ int main()
         return EXIT_FAILURE;
     }
 }
-

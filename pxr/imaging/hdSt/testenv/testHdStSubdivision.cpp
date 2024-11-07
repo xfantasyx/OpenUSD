@@ -42,12 +42,21 @@ TF_DEFINE_PRIVATE_TOKENS(
     ((rightHanded, "rightHanded"))
 );
 
-template <typename T>
+template <typename T, size_t N>
 static VtArray<T>
-_BuildArray(T values[], int numValues)
+_BuildArray(T (&values)[N])
 {
-    VtArray<T> result(numValues);
-    std::copy(values, values+numValues, result.begin());
+    VtArray<T> result(N);
+    std::copy(values, values+N, result.begin());
+    return result;
+}
+
+template <typename T, size_t N>
+static VtArray<T>
+_BuildArray(const std::array<T, N>& values)
+{
+    VtArray<T> result(N);
+    std::copy(values.begin(), values.end(), result.begin());
     return result;
 }
 
@@ -169,19 +178,19 @@ _DumpRefinedPoints(std::string const & name,
 
 #define DUMP_REFINED_POINTS(name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
     _DumpRefinedPoints(name, scheme, orientation,                        \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(holes, sizeof(holes)/sizeof(holes[0])), \
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(holes), \
                subdivTags, \
                /*level=*/1, false)
 
 #define DUMP_GPU_REFINED_POINTS(name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
     _DumpRefinedPoints(name, scheme, orientation,                        \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(holes, sizeof(holes)/sizeof(holes[0])), \
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(holes), \
                subdivTags, \
                /*level=*/1, true)
 
@@ -215,7 +224,7 @@ SubdivisionTest(TfToken const &scheme)
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        int holes[] = {};
+        std::array<int, 0> holes = {};
 
         if (!DUMP_REFINED_POINTS("triangle", scheme, _tokens->rightHanded,
                                     numVerts, verts, points, holes, PxOsdSubdivTags())) {
@@ -261,7 +270,7 @@ SubdivisionTest(TfToken const &scheme)
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        int holes[] = {};
+        std::array<int, 0> holes = {};
 
         if (!DUMP_REFINED_POINTS("triangle", scheme, _tokens->leftHanded,
                                  numVerts, verts, points, holes, PxOsdSubdivTags())) {
@@ -308,7 +317,7 @@ SubdivisionTest(TfToken const &scheme)
             GfVec3f(-1.0f,-1.0f, 0.0f ),
             GfVec3f( 1.0f,-1.0f, 0.0f ),
         };
-        int holes[] = {};
+        std::array<int, 0> holes = {};
 
         if (!DUMP_REFINED_POINTS("quad", scheme, _tokens->rightHanded,
                                  numVerts, verts, points, holes, PxOsdSubdivTags())) {
@@ -358,7 +367,7 @@ SubdivisionTest(TfToken const &scheme)
             GfVec3f( 3.0f, 0.5f, 0.0f),
             GfVec3f( 3.0f, 1.0f, 0.0f),
         };
-        int holes[] = {};
+        std::array<int, 0> holes = {};
 
         if (!DUMP_REFINED_POINTS("polygons", scheme, _tokens->rightHanded,
                                  numVerts, verts, points, holes, PxOsdSubdivTags())) {
@@ -416,7 +425,7 @@ LoopSubdivisionTest()
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        int holes[] = {};
+        std::array<int, 0> holes = {};
 
         if (!DUMP_REFINED_POINTS("triangle", PxOsdOpenSubdivTokens->loop,
                                  _tokens->rightHanded,
@@ -482,8 +491,8 @@ PrimitiveIDMappingTest(bool usePtexIndex)
                        0, 2, 3, 4,
                        4, 3, 5, 6, 7 };
 
-    VtIntArray numVerts = _BuildArray(numVertsSrc, 3);
-    VtIntArray verts = _BuildArray(vertsSrc, 12);
+    VtIntArray numVerts = _BuildArray(numVertsSrc);
+    VtIntArray verts = _BuildArray(vertsSrc);
 
     int refineLevel = 1;
     HdMeshTopology m(PxOsdOpenSubdivTokens->catmullClark, _tokens->rightHanded,
@@ -595,17 +604,12 @@ SubdivTagTest()
 
     PxOsdSubdivTags subdivTags;
 
-    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths,
-        sizeof(creaseLengths)/sizeof(creaseLengths[0])));
-    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices,
-        sizeof(creaseIndices)/sizeof(creaseIndices[0])));
-    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses,
-        sizeof(creaseSharpnesses)/sizeof(creaseSharpnesses[0])));
+    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths));
+    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices));
+    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses));
 
-    subdivTags.SetCornerIndices(_BuildArray(cornerIndices,
-        sizeof(cornerIndices)/sizeof(cornerIndices[0])));
-    subdivTags.SetCornerWeights( _BuildArray(cornerSharpnesses,
-        sizeof(cornerSharpnesses)/sizeof(cornerSharpnesses[0])));
+    subdivTags.SetCornerIndices(_BuildArray(cornerIndices));
+    subdivTags.SetCornerWeights(_BuildArray(cornerSharpnesses));
 
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
@@ -670,16 +674,13 @@ SubdivTagTest2()
     int creaseLengths[] = { 2, 4 };
     int creaseIndices[] = { 2, 3, 1, 2, 5, 6 };
     float creaseSharpnesses[] = { 4.0f, 5.0f };
-    int holes[] = {};
+    std::array<int, 0> holes = {};
 
     PxOsdSubdivTags subdivTags;
 
-    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths,
-        sizeof(creaseLengths)/sizeof(creaseLengths[0])));
-    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices,
-        sizeof(creaseIndices)/sizeof(creaseIndices[0])));
-    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses,
-        sizeof(creaseSharpnesses)/sizeof(creaseSharpnesses[0])));
+    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths));
+    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices));
+    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses));
 
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
@@ -730,16 +731,13 @@ InvalidTopologyTest()
     int creaseLengths[] = { 2, 4 };
     int creaseIndices[] = { 2, 3, 1, 2, 6, 7 };
     float creaseSharpnesses[] = { 4.0f, 5.0f };
-    int holes[] = {};
+    std::array<int, 0> holes = {};
 
     PxOsdSubdivTags subdivTags;
 
-    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths,
-        sizeof(creaseLengths)/sizeof(creaseLengths[0])));
-    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices,
-        sizeof(creaseIndices)/sizeof(creaseIndices[0])));
-    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses,
-        sizeof(creaseSharpnesses)/sizeof(creaseSharpnesses[0])));
+    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths));
+    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices));
+    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses));
 
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
@@ -765,10 +763,10 @@ EmptyTopologyTest()
 {
     std::cout << "\nEmpty Topology Test\n";
 
-    int numVerts[] = {};
-    int verts[] = {};
-    GfVec3f points[] = {};
-    int holes[] = {};
+    std::array<int, 0> numVerts = {};
+    std::array<int, 0> verts = {};
+    std::array<GfVec3f, 0> points = {};
+    std::array<int, 0> holes = {};
 
     if (!DUMP_REFINED_POINTS("subdivTag",
                              PxOsdOpenSubdivTokens->catmullClark,
@@ -818,7 +816,7 @@ TorusTopologyTest()
         GfVec3f(   0, -0.5,    1),
         GfVec3f(   1, -0.5,    0)
     };
-    int holes[] = {};
+    std::array<int, 0> holes = {};
 
     PxOsdSubdivTags subdivTags;
     if (!DUMP_REFINED_POINTS("subdivTag",
@@ -877,4 +875,3 @@ int main()
         return EXIT_FAILURE;
     }
 }
-
