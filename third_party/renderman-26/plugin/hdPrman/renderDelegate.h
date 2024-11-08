@@ -235,6 +235,9 @@ public:
     HDPRMAN_API
     void Update() override;
 
+    HDPRMAN_API
+    virtual bool IsParallelSyncEnabled(const TfToken &primType) const override;
+
 #endif
 
     // ------------------------------------------------------------------------

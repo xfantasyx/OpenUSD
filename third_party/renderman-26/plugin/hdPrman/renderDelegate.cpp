@@ -57,6 +57,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+TF_DEFINE_ENV_SETTING(
+    HD_PRMAN_ENABLE_PARALLEL_PRIM_SYNC, true,
+    "Enables parallel prim Sync for supported prim types");
+static bool _enableParallelPrimSync =
+    TfGetEnvSetting(HD_PRMAN_ENABLE_PARALLEL_PRIM_SYNC);
+
 // \class HdPrmanRenderDelegate::_RileySceneIndices.
 //
 // Holds the scene indices and scene index observers past the terminal scene
@@ -931,6 +937,27 @@ HdPrmanRenderDelegate::Update()
         _rileySceneIndices->Update();
     }
 #endif
+}
+
+bool
+HdPrmanRenderDelegate::IsParallelSyncEnabled(const TfToken &primType) const
+{
+    // The prim types below have been reviewed for Sync thread safety.
+    //
+    // Notable exceptions include integrator, renderSettings,
+    // volume, and lights.  These exceptions are generally due
+    // to interaction with HdChangeTracker state.
+    return
+        _enableParallelPrimSync && (
+#if PXR_VERSION >= 2311
+        primType == HdPrimTypeTokens->camera ||
+        primType == HdPrimTypeTokens->coordSys ||
+        primType == HdPrimTypeTokens->displayFilter ||
+        primType == HdPrimTypeTokens->lightFilter ||
+        primType == HdPrimTypeTokens->material ||
+        primType == HdPrimTypeTokens->sampleFilter ||
+#endif
+        false);
 }
 
 #endif
