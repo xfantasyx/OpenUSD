@@ -151,17 +151,17 @@ public:
     HdDataSourceBaseHandle
     Get(const TfToken &name) override
     {
-        HdDataSourceBaseHandle result;
-        if (_inputPrimDs) {
-            result = _inputPrimDs->Get(name);
-        }
         if (name == HdPrimvarsSchemaTokens->primvars) {
             if (HdPrimvarsSchema primvars =
                 HdPrimvarsSchema::GetFromParent(_inputPrimDs)) {
-                result = _UpdatePrimvars(primvars);
+                return _UpdatePrimvars(primvars);
             }
         }
-        return result;
+        if (_inputPrimDs) {
+            return _inputPrimDs->Get(name);
+        }
+
+        return nullptr;
     }
 
 protected:
