@@ -40,8 +40,12 @@ public:
     HGIVULKAN_API
     PFN_vkGetInstanceProcAddr GetPFNInstancProcAddr();
 
+    /// Does the instance support presentation?
+    bool HasPresentation() { return _hasPresentation; }
+
 private:
     VkInstance _vkInstance;
+    bool _hasPresentation;
 };
 
 

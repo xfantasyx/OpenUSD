@@ -87,6 +87,7 @@ HgiVulkanDevice::HgiVulkanDevice(HgiVulkanInstance* instance)
     , _vmaAllocator(nullptr)
     , _commandQueue(nullptr)
     , _capabilities(nullptr)
+    , _pipelineCache(nullptr)
 {
     //
     // Determine physical device
@@ -112,7 +113,8 @@ HgiVulkanDevice::HgiVulkanDevice(HgiVulkanInstance* instance)
         if (familyIndex == VK_QUEUE_FAMILY_IGNORED) continue;
 
         // Assume we always want a presentation capable device for now.
-        if (!_SupportsPresentation(instance, physicalDevices[i], familyIndex)) {
+        if (instance->HasPresentation() &&
+            !_SupportsPresentation(instance, physicalDevices[i], familyIndex)) {
             continue;
         }
 
@@ -383,10 +385,12 @@ HgiVulkanDevice::HgiVulkanDevice(HgiVulkanInstance* instance)
 
 HgiVulkanDevice::~HgiVulkanDevice()
 {
-    // Make sure device is idle before destroying objects.
-    HGIVULKAN_VERIFY_VK_RESULT(
-        vkDeviceWaitIdle(_vkDevice)
-    );
+    if (_vkDevice) {
+        // Make sure device is idle before destroying objects.
+        HGIVULKAN_VERIFY_VK_RESULT(
+            vkDeviceWaitIdle(_vkDevice)
+        );
+    }
 
     delete _pipelineCache;
     delete _commandQueue;
