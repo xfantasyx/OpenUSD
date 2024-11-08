@@ -1,3 +1,19 @@
+# Disable usdchecker on non python builds, until new validation framework is in 
+# place.
+if (NOT PXR_ENABLE_PYTHON_SUPPORT)
+    message(STATUS "Skipping usdchecker because python is disabled")
+    return()
+endif()
+
+# usdchecker currently depends on UsdUtilsComplianceChecker python module, which
+# are not build and installed on static builds. We disable usdchecker on static
+# builds until we introduce the option to use the new validation framework in a
+# subsequent change.
+if (NOT BUILD_SHARED_LIBS)
+    message(STATUS "Skipping usdchecker because static build is enabled")
+    return()
+endif()
+
 set(PXR_PREFIX pxr/usd)
 set(PXR_PACKAGE usd)
 
@@ -9,13 +25,6 @@ pxr_cpp_bin(usdchecker
         usd
         usdUtils
 )
-
-# Disable testing of the usdchecker on non python builds, until new validation
-# framework is in place.
-if (NOT PXR_ENABLE_PYTHON_SUPPORT)
-    message(STATUS "Skipping usdchecker tests because python is disabled")
-    return()
-endif()
 
 pxr_install_test_dir(
     SRC testenv/testUsdChecker
