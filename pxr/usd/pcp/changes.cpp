@@ -2040,6 +2040,8 @@ PcpChanges::_Optimize(PcpCacheChanges* changes)
         Pcp_SubsumeDescendants(&changes->didChangePrims, *i);
         Pcp_SubsumeDescendants(&changes->didChangeSpecs, *i);
         Pcp_SubsumeDescendants(&changes->_didChangeSpecsInternal, *i);
+        Pcp_SubsumeDescendants(
+            &changes->_didChangePrimSpecsAndChildrenInternal, *i);
     }
 
     // Subsume spec changes for prims whose indexes will be rebuilt.
@@ -2865,7 +2867,7 @@ void
 PcpChanges::_DidChangeSpecStackAndChildrenInternal(
     const PcpCache* cache, const SdfPath& path)
 {
-    _GetCacheChanges(cache)._didChangeSpecsAndChildrenInternal.insert(path);
+    _GetCacheChanges(cache)._didChangePrimSpecsAndChildrenInternal.insert(path);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE
