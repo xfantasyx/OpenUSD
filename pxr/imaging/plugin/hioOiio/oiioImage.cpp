@@ -289,7 +289,7 @@ _FindAttribute(ImageSpec const & spec, std::string const & metadataKey)
     bool convertMatrixTypes = false;
     std::string key = _TranslateMetadataKey(metadataKey, &convertMatrixTypes);
 
-    ImageIOParameter const * param = spec.find_attribute(key);
+    ParamValue const * param = spec.find_attribute(key);
     if (!param) {
         return VtValue();
     }
