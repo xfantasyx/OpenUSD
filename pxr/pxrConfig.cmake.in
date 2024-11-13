@@ -120,7 +120,7 @@ if(@PXR_ENABLE_VULKAN_SUPPORT@)
 
             add_library(shaderc_combined INTERFACE IMPORTED)
             set_target_properties(shaderc_combined PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${SHADERC_INCLUDE_DIR}"
+            INTERFACE_INCLUDE_DIRECTORIES "${SHADERC_INCLUDE_DIR};${PXR_CMAKE_DIR}/include/android_support"
             INTERFACE_LINK_LIBRARIES "${SHADERC_LIBRARIES}"
             )
 

@@ -277,6 +277,11 @@ if (PXR_BUILD_IMAGING)
 
             set(VULKAN_EXT_PATH "${PROJECT_SOURCE_DIR}/android_support")
 
+            
+            install(
+                    DIRECTORY ${PROJECT_SOURCE_DIR}/android_support
+                    DESTINATION include
+            )
             if(NOT TARGET shaderc_combined)
                 FIND_PATH( SHADERC_INCLUDE_DIR
                     shaderc/shaderc.h
