@@ -17,14 +17,20 @@ PXR_NAMESPACE_OPEN_SCOPE
 /// Plugin adds a scene index that declares hdprman-specific dependencies to
 /// trigger the necessary invalidation.
 ///
-/// Currently, the lone usage is for volume prims.
-///
-/// Specfically, the declaration allows the volumeFieldBinding data source
+/// It currently declares 2 dependencies:
+/// (a -> b to be read as "a depends on b")
+/// 1. Volume -> Volume Field Binding
+/// This declaration registers the volumeFieldBinding data source
 /// locator of a volume prim to be invalidated if any of the targeted volume
 /// fields changes.
 /// That is, if, e.g., the filePath of a volume field changes, then the volume
 /// using that volume field will be dirtied so that HdPrmanVolume will update
 /// which 3d textures it will use.
+///
+/// 2. Light -> Light Filter
+/// This declaration registers the light data source locator of a light prim
+/// to be invalidated if the visibility or filter link collection of a
+/// targeted light filter changes.
 ///
 class HdPrman_DependencySceneIndexPlugin : public HdSceneIndexPlugin
 {

@@ -34,8 +34,6 @@
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
-HdStResourceRegistrySharedPtr registry;
-
 TF_DEFINE_PRIVATE_TOKENS(
     _tokens,
     ((leftHanded, "leftHanded"))
@@ -53,7 +51,8 @@ _BuildArray(T values[], int numValues)
 
 template <typename Vec3Type>
 bool
-_DumpRefinedPoints(std::string const & name,
+_DumpRefinedPoints(HdStResourceRegistrySharedPtr const &registry,
+                   std::string const & name,
                    TfToken const & scheme,
                    TfToken const & orientation,
                    VtIntArray numVerts, VtIntArray verts,
@@ -167,8 +166,8 @@ _DumpRefinedPoints(std::string const & name,
     return true;
 }
 
-#define DUMP_REFINED_POINTS(name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
-    _DumpRefinedPoints(name, scheme, orientation,                        \
+#define DUMP_REFINED_POINTS(registry, name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
+    _DumpRefinedPoints(registry, name, scheme, orientation,                        \
                _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
                _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
                _BuildArray(points, sizeof(points)/sizeof(points[0])), \
@@ -176,8 +175,8 @@ _DumpRefinedPoints(std::string const & name,
                subdivTags, \
                /*level=*/1, false)
 
-#define DUMP_GPU_REFINED_POINTS(name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
-    _DumpRefinedPoints(name, scheme, orientation,                        \
+#define DUMP_GPU_REFINED_POINTS(registry, name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
+    _DumpRefinedPoints(registry, name, scheme, orientation,                        \
                _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
                _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
                _BuildArray(points, sizeof(points)/sizeof(points[0])), \
@@ -186,7 +185,8 @@ _DumpRefinedPoints(std::string const & name,
                /*level=*/1, true)
 
 bool
-SubdivisionTest(TfToken const &scheme)
+SubdivisionTest(HdStResourceRegistrySharedPtr const &registry,
+    TfToken const &scheme)
 {
     HdPerfLog& perfLog = HdPerfLog::GetInstance();
     perfLog.Enable();
@@ -217,8 +217,9 @@ SubdivisionTest(TfToken const &scheme)
         };
         int holes[] = {};
 
-        if (!DUMP_REFINED_POINTS("triangle", scheme, _tokens->rightHanded,
-                                    numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_REFINED_POINTS(
+            registry, "triangle", scheme, _tokens->rightHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
 
@@ -229,8 +230,9 @@ SubdivisionTest(TfToken const &scheme)
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->computationsCommited) == 0);
         perfLog.ResetCounters();
 
-        if (!DUMP_GPU_REFINED_POINTS("triangle", scheme, _tokens->rightHanded,
-                                     numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_GPU_REFINED_POINTS(
+            registry, "triangle", scheme, _tokens->rightHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
 
@@ -263,8 +265,9 @@ SubdivisionTest(TfToken const &scheme)
         };
         int holes[] = {};
 
-        if (!DUMP_REFINED_POINTS("triangle", scheme, _tokens->leftHanded,
-                                 numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_REFINED_POINTS(
+            registry, "triangle", scheme, _tokens->leftHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
 
@@ -275,8 +278,9 @@ SubdivisionTest(TfToken const &scheme)
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->computationsCommited) == 0);
         perfLog.ResetCounters();
 
-        if (!DUMP_GPU_REFINED_POINTS("triangle", scheme, _tokens->leftHanded,
-                                     numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_GPU_REFINED_POINTS(
+            registry, "triangle", scheme, _tokens->leftHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
 
@@ -310,8 +314,9 @@ SubdivisionTest(TfToken const &scheme)
         };
         int holes[] = {};
 
-        if (!DUMP_REFINED_POINTS("quad", scheme, _tokens->rightHanded,
-                                 numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_REFINED_POINTS(
+            registry, "quad", scheme, _tokens->rightHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->subdivisionRefineCPU) == 1);
@@ -320,8 +325,9 @@ SubdivisionTest(TfToken const &scheme)
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->computationsCommited) == 0);
         perfLog.ResetCounters();
 
-        if (!DUMP_GPU_REFINED_POINTS("quad", scheme, _tokens->rightHanded,
-                                     numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_GPU_REFINED_POINTS(
+            registry, "quad", scheme, _tokens->rightHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->subdivisionRefineCPU) == 0);
@@ -360,8 +366,9 @@ SubdivisionTest(TfToken const &scheme)
         };
         int holes[] = {};
 
-        if (!DUMP_REFINED_POINTS("polygons", scheme, _tokens->rightHanded,
-                                 numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_REFINED_POINTS(
+            registry, "polygons", scheme, _tokens->rightHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->subdivisionRefineCPU) == 1);
@@ -370,8 +377,9 @@ SubdivisionTest(TfToken const &scheme)
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->computationsCommited) == 0);
         perfLog.ResetCounters();
 
-        if (!DUMP_GPU_REFINED_POINTS("polygons", scheme, _tokens->rightHanded,
-                                     numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_GPU_REFINED_POINTS(
+            registry, "polygons", scheme, _tokens->rightHanded,
+            numVerts, verts, points, holes, PxOsdSubdivTags())) {
             return false;
         }
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->subdivisionRefineCPU) == 0);
@@ -385,7 +393,7 @@ SubdivisionTest(TfToken const &scheme)
 }
 
 bool
-LoopSubdivisionTest()
+LoopSubdivisionTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "\nLoop Subdivision Test\n";
 
@@ -418,9 +426,10 @@ LoopSubdivisionTest()
         };
         int holes[] = {};
 
-        if (!DUMP_REFINED_POINTS("triangle", PxOsdOpenSubdivTokens->loop,
-                                 _tokens->rightHanded,
-                                 numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_REFINED_POINTS(
+            registry, "triangle", PxOsdOpenSubdivTokens->loop,
+            _tokens->rightHanded, numVerts, verts, points, holes,
+            PxOsdSubdivTags())) {
             return false;
         }
 
@@ -431,9 +440,10 @@ LoopSubdivisionTest()
         TF_VERIFY(perfLog.GetCounter(HdPerfTokens->computationsCommited) == 0);
         perfLog.ResetCounters();
 
-        if (!DUMP_GPU_REFINED_POINTS("triangle", PxOsdOpenSubdivTokens->loop,
-                                     _tokens->rightHanded,
-                                     numVerts, verts, points, holes, PxOsdSubdivTags())) {
+        if (!DUMP_GPU_REFINED_POINTS(
+            registry, "triangle", PxOsdOpenSubdivTokens->loop,
+            _tokens->rightHanded, numVerts, verts, points, holes,
+            PxOsdSubdivTags())) {
             return false;
         }
 
@@ -449,7 +459,8 @@ LoopSubdivisionTest()
 }
 
 bool
-PrimitiveIDMappingTest(bool usePtexIndex)
+PrimitiveIDMappingTest(HdStResourceRegistrySharedPtr const &registry,
+    bool usePtexIndex)
 {
     std::cout << "\nPrimitiveIDMap Test\n";
 
@@ -545,7 +556,7 @@ PrimitiveIDMappingTest(bool usePtexIndex)
 }
 
 bool
-SubdivTagTest()
+SubdivTagTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "\nSubdiv Tag Test\n";
     /*
@@ -611,21 +622,21 @@ SubdivTagTest()
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
 
 
-    if (!DUMP_REFINED_POINTS("subdivTag",
-                             PxOsdOpenSubdivTokens->catmullClark, _tokens->rightHanded,
-                             numVerts, verts, points, holes, subdivTags)) {
+    if (!DUMP_REFINED_POINTS(
+        registry, "subdivTag", PxOsdOpenSubdivTokens->catmullClark,
+        _tokens->rightHanded, numVerts, verts, points, holes, subdivTags)) {
         return false;
     }
-    if (!DUMP_GPU_REFINED_POINTS("subdivTag",
-                                 PxOsdOpenSubdivTokens->catmullClark,_tokens->rightHanded,
-                                 numVerts, verts, points, holes, subdivTags)) {
+    if (!DUMP_GPU_REFINED_POINTS(
+        registry, "subdivTag", PxOsdOpenSubdivTokens->catmullClark,
+        _tokens->rightHanded, numVerts, verts, points, holes, subdivTags)) {
         return false;
     }
     return true;
 }
 
 bool
-SubdivTagTest2()
+SubdivTagTest2(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "\nSubdiv Tag Test 2\n";
 
@@ -684,13 +695,13 @@ SubdivTagTest2()
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
 
-    if (!DUMP_REFINED_POINTS("subdivTag",
+    if (!DUMP_REFINED_POINTS(registry, "subdivTag",
                              PxOsdOpenSubdivTokens->catmullClark,
                              _tokens->rightHanded,
                              numVerts, verts, points, holes, subdivTags)){
         return false;
     }
-    if (!DUMP_GPU_REFINED_POINTS("subdivTag",
+    if (!DUMP_GPU_REFINED_POINTS(registry, "subdivTag",
                                  PxOsdOpenSubdivTokens->catmullClark,
                                  _tokens->rightHanded,
                                  numVerts, verts, points, holes, subdivTags)) {
@@ -701,7 +712,7 @@ SubdivTagTest2()
 }
 
 bool
-InvalidTopologyTest()
+InvalidTopologyTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "\nInvalid Topology Test\n";
 
@@ -744,13 +755,13 @@ InvalidTopologyTest()
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
 
-    if (!DUMP_REFINED_POINTS("subdivTag",
+    if (!DUMP_REFINED_POINTS(registry, "subdivTag",
                              PxOsdOpenSubdivTokens->catmullClark,
                              _tokens->rightHanded,
                              numVerts, verts, points, holes, subdivTags)){
         return false;
     }
-    if (!DUMP_GPU_REFINED_POINTS("subdivTag",
+    if (!DUMP_GPU_REFINED_POINTS(registry, "subdivTag",
                                  PxOsdOpenSubdivTokens->catmullClark,
                                  _tokens->rightHanded,
                                  numVerts, verts, points, holes, subdivTags)) {
@@ -761,7 +772,7 @@ InvalidTopologyTest()
 }
 
 bool
-EmptyTopologyTest()
+EmptyTopologyTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "\nEmpty Topology Test\n";
 
@@ -770,13 +781,13 @@ EmptyTopologyTest()
     GfVec3f points[] = {};
     int holes[] = {};
 
-    if (!DUMP_REFINED_POINTS("subdivTag",
+    if (!DUMP_REFINED_POINTS(registry, "subdivTag",
                              PxOsdOpenSubdivTokens->catmullClark,
                              _tokens->rightHanded,
                              numVerts, verts, points, holes, PxOsdSubdivTags())){
         return false;
     }
-    if (!DUMP_GPU_REFINED_POINTS("subdivTag",
+    if (!DUMP_GPU_REFINED_POINTS(registry, "subdivTag",
                                  PxOsdOpenSubdivTokens->catmullClark,
                                  _tokens->rightHanded,
                                  numVerts, verts, points, holes, PxOsdSubdivTags())) {
@@ -787,7 +798,7 @@ EmptyTopologyTest()
 }
 
 bool
-TorusTopologyTest()
+TorusTopologyTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "\nTorus Topology Test\n";
 
@@ -821,13 +832,13 @@ TorusTopologyTest()
     int holes[] = {};
 
     PxOsdSubdivTags subdivTags;
-    if (!DUMP_REFINED_POINTS("subdivTag",
+    if (!DUMP_REFINED_POINTS(registry, "subdivTag",
                              PxOsdOpenSubdivTokens->catmullClark,
                              _tokens->rightHanded,
                              numVerts, verts, points, holes, PxOsdSubdivTags())){
         return false;
     }
-    if (!DUMP_GPU_REFINED_POINTS("subdivTag",
+    if (!DUMP_GPU_REFINED_POINTS(registry, "subdivTag",
                                  PxOsdOpenSubdivTokens->catmullClark,
                                  _tokens->rightHanded,
                                  numVerts, verts, points, holes, PxOsdSubdivTags())) {
@@ -844,30 +855,29 @@ int main()
 
     TfErrorMark mark;
 
-    HgiUniquePtr hgi = Hgi::CreatePlatformDefaultHgi();
+    HgiUniquePtr const hgi = Hgi::CreatePlatformDefaultHgi();
     HdDriver driver{HgiTokens->renderDriver, VtValue(hgi.get())};
     HdStRenderDelegate renderDelegate;
-    std::unique_ptr<HdRenderIndex> index(
+    std::unique_ptr<HdRenderIndex> const index(
         HdRenderIndex::New(&renderDelegate, {&driver}));
-    registry = std::static_pointer_cast<HdStResourceRegistry>(
+    HdStResourceRegistrySharedPtr const registry =
+        std::static_pointer_cast<HdStResourceRegistry>(
         index->GetResourceRegistry());
 
     bool success = true;
-    success &= SubdivisionTest(PxOsdOpenSubdivTokens->catmullClark);
+    success &= SubdivisionTest(registry, PxOsdOpenSubdivTokens->catmullClark);
     // skip bilinear test until OpenSubdiv3 is updated to the latest.
     //success &= SubdivisionTest(PxOsdOpenSubdivTokens->bilinear);
-    success &= LoopSubdivisionTest();
-    success &= PrimitiveIDMappingTest(/*usePtexIndex=*/true);
-    success &= PrimitiveIDMappingTest(/*usePtexIndex=*/false);
-    success &= SubdivTagTest();
-    success &= SubdivTagTest2();
-    success &= InvalidTopologyTest();
-    success &= EmptyTopologyTest();
-    success &= TorusTopologyTest();
+    success &= LoopSubdivisionTest(registry);
+    success &= PrimitiveIDMappingTest(registry, /*usePtexIndex=*/true);
+    success &= PrimitiveIDMappingTest(registry, /*usePtexIndex=*/false);
+    success &= SubdivTagTest(registry);
+    success &= SubdivTagTest2(registry);
+    success &= InvalidTopologyTest(registry);
+    success &= EmptyTopologyTest(registry);
+    success &= TorusTopologyTest(registry);
 
     TF_VERIFY(mark.IsClean());
-
-    registry.reset();
 
     if (success && mark.IsClean()) {
         std::cout << "OK" << std::endl;

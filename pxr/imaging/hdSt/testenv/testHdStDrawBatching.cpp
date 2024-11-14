@@ -57,17 +57,7 @@ static HdSt_MaterialNetworkShaderSharedPtr _GetFallbackShader()
     return _fallbackMaterialNetworkShader;
 }
 
-static HdStResourceRegistrySharedPtr _GetResourceRegistry()
-{
-    static HgiUniquePtr _hgi = Hgi::CreatePlatformDefaultHgi();
-    static HdDriver _driver{HgiTokens->renderDriver, VtValue(_hgi.get())};
-    static HdStRenderDelegate _renderDelegate;
-    static std::unique_ptr<HdRenderIndex> _index(
-        HdRenderIndex::New(&_renderDelegate, {&_driver}));
 
-    return std::static_pointer_cast<HdStResourceRegistry>(
-        _index->GetResourceRegistry());
-}
 
 template <typename T>
 static VtValue
@@ -80,6 +70,7 @@ _BuildArrayValue(T values[], int numValues)
 
 HdStDrawItem
 _RegisterDrawItem(
+    HdStResourceRegistrySharedPtr const &registry,
     HdSt_GeometricShader::PrimitiveType primType,
     HdRprimSharedData *sharedData,
     VtValue const & indicesValue,
@@ -89,8 +80,6 @@ _RegisterDrawItem(
     VtValue const & normalsValue = VtValue(),
     VtValue const & colorsValue = VtValue())
 {
-    HdStResourceRegistrySharedPtr const& registry = _GetResourceRegistry();
-
     HdBufferSourceSharedPtrVector sources;
     HdBufferSpecVector bufferSpecs;
 
@@ -247,7 +236,9 @@ _RegisterDrawItem(
 }
 
 static std::vector<HdStDrawItem>
-_GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
+_GetDrawItems(
+    HdStResourceRegistrySharedPtr const &registry,
+    std::vector<HdRprimSharedData> &sharedData)
 {
     std::vector<HdStDrawItem> result;
 
@@ -308,7 +299,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
     };
     // tris w/o color
     result.push_back(_RegisterDrawItem(
-        primTypeTris, &sharedData[0],
+        registry, primTypeTris, &sharedData[0],
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])),
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])), /* dummy pparam*/
         _BuildArrayValue(triEdges, sizeof(triEdges)/sizeof(triEdges[0])),
@@ -316,7 +307,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
         _BuildArrayValue(trisN, sizeof(trisN)/sizeof(trisN[0]))));
 
     result.push_back(_RegisterDrawItem(
-        primTypeTris, &sharedData[1],
+        registry, primTypeTris, &sharedData[1],
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])),
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])), /* dummy pparam*/
         _BuildArrayValue(triEdges, sizeof(triEdges)/sizeof(triEdges[0])),
@@ -325,7 +316,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
 
     // quads w/o color
     result.push_back(_RegisterDrawItem(
-        primTypeQuads, &sharedData[2],
+        registry, primTypeQuads, &sharedData[2],
         _BuildArrayValue(quadsI, sizeof(quadsI)/sizeof(quadsI[0])),
         _BuildArrayValue(quadPP, sizeof(quadPP)/sizeof(quadPP[0])), /* dummy pparam*/
         _BuildArrayValue(quadEdges, sizeof(quadEdges)/sizeof(quadEdges[0])),
@@ -333,7 +324,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
         _BuildArrayValue(quadsN, sizeof(quadsN)/sizeof(quadsN[0]))));
 
     result.push_back(_RegisterDrawItem(
-        primTypeQuads, &sharedData[3],
+        registry, primTypeQuads, &sharedData[3],
         _BuildArrayValue(quadsI, sizeof(quadsI)/sizeof(quadsI[0])),
         _BuildArrayValue(quadPP, sizeof(quadPP)/sizeof(quadPP[0])), /* dummy pparam*/
         _BuildArrayValue(quadEdges, sizeof(quadEdges)/sizeof(quadEdges[0])),
@@ -342,7 +333,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
 
     // quads w/ color
     result.push_back(_RegisterDrawItem(
-        primTypeQuads, &sharedData[4],
+        registry, primTypeQuads, &sharedData[4],
         _BuildArrayValue(quadsI, sizeof(quadsI)/sizeof(quadsI[0])),
         _BuildArrayValue(quadPP, sizeof(quadPP)/sizeof(quadPP[0])), /* dummy pparam*/
         _BuildArrayValue(quadEdges, sizeof(quadEdges)/sizeof(quadEdges[0])),
@@ -351,7 +342,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
         _BuildArrayValue(quadsC, sizeof(quadsC)/sizeof(quadsC[0]))));
 
     result.push_back(_RegisterDrawItem(
-        primTypeQuads, &sharedData[5],
+        registry, primTypeQuads, &sharedData[5],
         _BuildArrayValue(quadsI, sizeof(quadsI)/sizeof(quadsI[0])),
         _BuildArrayValue(quadPP, sizeof(quadPP)/sizeof(quadPP[0])), /* dummy pparam*/
         _BuildArrayValue(quadEdges, sizeof(quadEdges)/sizeof(quadEdges[0])),
@@ -361,7 +352,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
 
     // tris w/ color
     result.push_back(_RegisterDrawItem(
-        primTypeTris, &sharedData[6],
+        registry, primTypeTris, &sharedData[6],
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])),
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])), /* dummy pparam*/
         _BuildArrayValue(triEdges, sizeof(triEdges)/sizeof(triEdges[0])),
@@ -370,7 +361,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
         _BuildArrayValue(trisC, sizeof(trisC)/sizeof(trisC[0]))));
 
     result.push_back(_RegisterDrawItem(
-        primTypeTris, &sharedData[7],
+        registry, primTypeTris, &sharedData[7],
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])),
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])), /* dummy pparam*/
         _BuildArrayValue(triEdges, sizeof(triEdges)/sizeof(triEdges[0])),
@@ -380,7 +371,7 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
 
     // tris w/o color
     result.push_back(_RegisterDrawItem(
-        primTypeTris, &sharedData[8],
+        registry, primTypeTris, &sharedData[8],
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])),
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])), /* dummy pparam*/
         _BuildArrayValue(triEdges, sizeof(triEdges)/sizeof(triEdges[0])),
@@ -388,14 +379,13 @@ _GetDrawItems(std::vector<HdRprimSharedData> &sharedData)
         _BuildArrayValue(trisN, sizeof(trisN)/sizeof(trisN[0]))));
 
     result.push_back(_RegisterDrawItem(
-        primTypeTris, &sharedData[9],
+        registry, primTypeTris, &sharedData[9],
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])),
         _BuildArrayValue(trisI, sizeof(trisI)/sizeof(trisI[0])), /* dummy pparam*/
         _BuildArrayValue(triEdges, sizeof(triEdges)/sizeof(triEdges[0])),
         _BuildArrayValue(trisP, sizeof(trisP)/sizeof(trisP[0])),
         _BuildArrayValue(trisN, sizeof(trisN)/sizeof(trisN[0]))));
 
-    HdStResourceRegistrySharedPtr const& registry = _GetResourceRegistry();
     registry->Commit();
 
     return result;
@@ -431,11 +421,9 @@ Dump(std::string const &message, VtDictionary dict, HdPerfLog &perfLog)
 }
 
 static void
-IndirectDrawBatchTest()
+IndirectDrawBatchTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "==== IndirectDrawBatchTest:\n";
-
-    HdStResourceRegistrySharedPtr const& registry = _GetResourceRegistry();
 
     HdPerfLog& perfLog = HdPerfLog::GetInstance();
     perfLog.Enable();
@@ -450,7 +438,7 @@ IndirectDrawBatchTest()
         sd.instancerLevels = 0;
     }
 
-    std::vector<HdStDrawItem> drawItems = _GetDrawItems(sharedData);
+    std::vector<HdStDrawItem> drawItems = _GetDrawItems(registry, sharedData);
     std::vector<HdStDrawItemInstance> drawItemInstances;
     {
         TF_FOR_ALL(drawItemIt, drawItems) {
@@ -613,13 +601,12 @@ IndirectDrawBatchMigrationTest()
 }
 
 static void
-EmptyDrawBatchTest()
+EmptyDrawBatchTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "==== EmptyDrawBatchTest:\n";
 
     // This test covers bug 120354.
     //
-    HdStResourceRegistrySharedPtr const& registry = _GetResourceRegistry();
     registry->GarbageCollect();
 
     HdPerfLog& perfLog = HdPerfLog::GetInstance();
@@ -770,9 +757,18 @@ int main()
 
     TfErrorMark mark;
 
-    IndirectDrawBatchTest();
+    HgiUniquePtr const hgi = Hgi::CreatePlatformDefaultHgi();
+    HdDriver driver{HgiTokens->renderDriver, VtValue(hgi.get())};
+    HdStRenderDelegate renderDelegate;
+    std::unique_ptr<HdRenderIndex> const index(
+        HdRenderIndex::New(&renderDelegate, {&driver}));
+    HdStResourceRegistrySharedPtr const registry =
+        std::static_pointer_cast<HdStResourceRegistry>(
+            index->GetResourceRegistry());
+
+    IndirectDrawBatchTest(registry);
     IndirectDrawBatchMigrationTest();
-    EmptyDrawBatchTest();
+    EmptyDrawBatchTest(registry);
 
     if (mark.IsClean()) {
         std::cout << "OK" << std::endl;

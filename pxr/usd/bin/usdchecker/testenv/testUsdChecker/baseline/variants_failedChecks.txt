@@ -10,3 +10,5 @@ Prim </World/X/pi> has unsupported type 'PointInstancer'. (fails 'ARKitPrimTypeC
 Prim </World/C/pi> has unsupported type 'PointInstancer'. (fails 'ARKitPrimTypeChecker')
 Prim </World/Y/pi> has unsupported type 'PointInstancer'. (fails 'ARKitPrimTypeChecker')
 Prim </World/C/pi> has unsupported type 'PointInstancer'. (fails 'ARKitPrimTypeChecker')
+Failed!
+

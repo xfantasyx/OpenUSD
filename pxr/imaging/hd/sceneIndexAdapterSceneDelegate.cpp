@@ -1779,6 +1779,9 @@ HdSceneIndexAdapterSceneDelegate::_ComputePrimvarDescriptors(
                 primvar.GetInterpolation();
 
             if (!interpolationDataSource) {
+                TF_WARN("HdSceneIndexAdapterSceneDelegate: Skipping primvar "
+                        "'%s' due to missing interpolation data source",
+                        name.GetText());
                 continue;
             }
 
@@ -1788,6 +1791,9 @@ HdSceneIndexAdapterSceneDelegate::_ComputePrimvarDescriptors(
                 Hd_InterpolationAsEnum(interpolationToken);
 
             if (interpolation >= HdInterpolationCount) {
+                TF_WARN("HdSceneIndexAdapterSceneDelegate: Skipping primvar "
+                        "'%s' due to invalid interpolation value %i",
+                        name.GetText(), interpolation);
                 continue;
             }
 

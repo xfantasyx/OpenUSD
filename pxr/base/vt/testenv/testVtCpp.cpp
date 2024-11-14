@@ -53,6 +53,7 @@
 
 #include "pxr/base/arch/defines.h"
 #include "pxr/base/arch/fileSystem.h"
+#include "pxr/base/arch/pragmas.h"
 
 #include <cstdio>
 #include <cmath>
@@ -505,6 +506,9 @@ static void testArray() {
         // Test that attempts to create overly large arrays throw
         // std::bad_alloc
 
+ARCH_PRAGMA_PUSH
+ARCH_PRAGMA_STRINGOP_OVERFLOW
+
         VtIntArray ia;
         try {
             ia.resize(std::numeric_limits<size_t>::max());
@@ -530,6 +534,8 @@ static void testArray() {
         catch (std::bad_alloc const &) {
             // pass
         }
+
+ARCH_PRAGMA_POP
     }
 }
 

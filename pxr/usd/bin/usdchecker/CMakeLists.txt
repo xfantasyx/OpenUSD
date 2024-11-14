@@ -1,10 +1,29 @@
+# Disable usdchecker on non python builds, until new validation framework is in 
+# place.
+if (NOT PXR_ENABLE_PYTHON_SUPPORT)
+    message(STATUS "Skipping usdchecker because python is disabled")
+    return()
+endif()
+
+# usdchecker currently depends on UsdUtilsComplianceChecker python module, which
+# are not build and installed on static builds. We disable usdchecker on static
+# builds until we introduce the option to use the new validation framework in a
+# subsequent change.
+if (NOT BUILD_SHARED_LIBS)
+    message(STATUS "Skipping usdchecker because static build is enabled")
+    return()
+endif()
+
 set(PXR_PREFIX pxr/usd)
 set(PXR_PACKAGE usd)
 
-pxr_python_bin(usdchecker
-    DEPENDENCIES
+pxr_cpp_bin(usdchecker
+    LIBRARIES
+        arch
+        tf
+        sdf
         usd
-        usdGeom
+        usdUtils
 )
 
 pxr_install_test_dir(
@@ -28,26 +47,22 @@ pxr_install_test_dir(
 )
 
 pxr_register_test(testUsdChecker1
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker clean/clean.usd"
     EXPECTED_RETURN_CODE 0
 )
 
 
 pxr_register_test(testUsdChecker2
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker clean/clean_flat.usdc"
     EXPECTED_RETURN_CODE 0
 )
 
 pxr_register_test(testUsdChecker3
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker clean/clean.usdz"
     EXPECTED_RETURN_CODE 0
 )
 
 pxr_register_test(testUsdChecker4
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker clean/clean_flat.usdz"
     EXPECTED_RETURN_CODE 0
 )
@@ -74,26 +89,23 @@ pxr_install_test_dir(
 )
 
 pxr_register_test(testUsdChecker5
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker --arkit clean/clean_arkit.usdz"
     EXPECTED_RETURN_CODE 0
 )
 
 
 pxr_register_test(testUsdChecker6
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker --arkit clean/clean_flat.usdc"
     EXPECTED_RETURN_CODE 1
 )
 
+# Adding a "rootPackageOnly" option to the command line will make the clean files
 pxr_register_test(testUsdChecker7
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker --arkit --rootPackageOnly clean/clean_flat.usdz"
     EXPECTED_RETURN_CODE 0
 )
 
 pxr_register_test(testUsdChecker8
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker --arkit clean/clean_flat.usdz"
     EXPECTED_RETURN_CODE 1
 )
@@ -119,27 +131,23 @@ pxr_install_test_dir(
 )
 
 pxr_register_test(testUsdChecker9
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker bad/badUsdz.usdz"
     EXPECTED_RETURN_CODE 1
 )
 
 
 pxr_register_test(testUsdChecker10
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker --arkit --dumpRules bad/variants.usdc -o variants_failedChecks.txt"
     DIFF_COMPARE variants_failedChecks.txt
     EXPECTED_RETURN_CODE 1
 )
 
 pxr_register_test(testUsdChecker11
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker bad/brokenRef.usd"
     EXPECTED_RETURN_CODE 1
 )
 
 pxr_register_test(testUsdChecker12
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker --arkit bad/badShaderUnsupportedTexture.usdc"
     EXPECTED_RETURN_CODE 1
 )
@@ -150,7 +158,6 @@ pxr_install_test_dir(
 )
 
 pxr_register_test(testUsdChecker13
-    PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/bin/usdchecker clean/cleanNormalMapReader.usda"
     EXPECTED_RETURN_CODE 0
 )

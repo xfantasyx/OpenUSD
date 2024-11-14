@@ -71,10 +71,6 @@ HgiVulkanInstance::HgiVulkanInstance()
     , vkDestroyDebugUtilsMessengerEXT(nullptr)
     , _vkInstance(nullptr)
 {
-    TF_VERIFY(
-        volkInitialize() == VK_SUCCESS
-    );
-
     VkApplicationInfo appInfo = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
     appInfo.apiVersion = VK_API_VERSION_1_3;
 
@@ -144,8 +140,6 @@ HgiVulkanInstance::HgiVulkanInstance()
             &_vkInstance)
     );
 
-    volkLoadInstance(_vkInstance);
-
     HgiVulkanCreateDebug(this);
 }
 
@@ -161,10 +155,5 @@ HgiVulkanInstance::GetVulkanInstance() const
     return _vkInstance;
 }
 
-PFN_vkGetInstanceProcAddr
-HgiVulkanInstance::GetPFNInstancProcAddr()
-{
-    return vkGetInstanceProcAddr;
-}
 
 PXR_NAMESPACE_CLOSE_SCOPE
