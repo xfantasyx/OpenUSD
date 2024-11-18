@@ -1217,7 +1217,7 @@ HdxPrimOriginInfo::FromPickHits(HdRenderIndex * const renderIndex,
         return resultVec;
     }
 
-    for (int i = 0, n = hits.size(); i < n; i++) {
+    for (size_t i = 0, n = hits.size(); i < n; i++) {
         resultVec[i] = _FromPickHitWithCache(sceneIndex, hits[i], &infoCache);
     }
 
