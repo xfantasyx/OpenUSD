@@ -131,7 +131,11 @@ HgiVulkanCapabilities::HgiVulkanCapabilities(HgiVulkanDevice* device)
 
     _SetFlag(HgiDeviceCapabilitiesBitsDepthRangeMinusOnetoOne, false);
     _SetFlag(HgiDeviceCapabilitiesBitsStencilReadback, true);
+    #if defined(ANDROID) || defined(__ANDROID__)
+    _SetFlag(HgiDeviceCapabilitiesBitsShaderDoublePrecision, false);
+    #else
     _SetFlag(HgiDeviceCapabilitiesBitsShaderDoublePrecision, true);
+    #endif
     _SetFlag(HgiDeviceCapabilitiesBitsConservativeRaster, 
         conservativeRasterEnabled);
     _SetFlag(HgiDeviceCapabilitiesBitsBuiltinBarycentrics, 
