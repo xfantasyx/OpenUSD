@@ -706,7 +706,7 @@ pxr_register_test(testUsdImagingGLBasicDrawing_clipped
 )
 
 pxr_register_test(testUsdImagingGLBasicDrawing_id
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -idRender -stage basicDrawing/shaders.usd -frameAll -write testUsdImagingGLBasicDrawing_id.png"
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -rendererAov primId -stage basicDrawing/shaders.usd -frameAll -write testUsdImagingGLBasicDrawing_id.png"
     IMAGE_DIFF_COMPARE
         testUsdImagingGLBasicDrawing_id.png
     FAIL 1
@@ -4595,6 +4595,30 @@ pxr_register_test(testUsdImagingGLAovVisualization_Storm_depth
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -stage viz_aov.usda -rendererAov depth -clear 0 0 0 1 -lighting -camera /main_cam -write testUsdImagingGLAovVisualization_Storm_depth.png"
     IMAGE_DIFF_COMPARE
         testUsdImagingGLAovVisualization_Storm_depth.png
+    FAIL 0.05
+    FAIL_PERCENT 0.001
+    WARN 0.025
+    WARN_PERCENT 0.002
+    EXPECTED_RETURN_CODE 0
+    TESTENV testUsdImagingGLAovVisualization
+)
+
+pxr_register_test(testUsdImagingGLAovVisualization_Storm_primId
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -stage viz_aov.usda -rendererAov primId -clear 0 0 0 1 -lighting -camera /main_cam -write testUsdImagingGLAovVisualization_Storm_primId.png"
+    IMAGE_DIFF_COMPARE
+        testUsdImagingGLAovVisualization_Storm_primId.png
+    FAIL 0.05
+    FAIL_PERCENT 0.015
+    WARN 0.025
+    WARN_PERCENT 0.002
+    EXPECTED_RETURN_CODE 0
+    TESTENV testUsdImagingGLAovVisualization
+)
+
+pxr_register_test(testUsdImagingGLAovVisualization_Storm_Neye
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -stage viz_aov.usda -rendererAov Neye -clear 0 0 0 1 -lighting -camera /main_cam -write testUsdImagingGLAovVisualization_Storm_Neye.png"
+    IMAGE_DIFF_COMPARE
+        testUsdImagingGLAovVisualization_Storm_Neye.png
     FAIL 0.05
     FAIL_PERCENT 0.001
     WARN 0.025
