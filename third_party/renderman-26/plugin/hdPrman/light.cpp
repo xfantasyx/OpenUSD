@@ -694,7 +694,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
             static_cast<uint32_t>(filterNodes.size()),
             filterNodes.data()
         };
-        
+
         if (_shaderId == riley::LightShaderId::InvalidId()) {
             const riley::UserId userId(
                 stats::AddDataLocation(id.GetText()).GetValue());

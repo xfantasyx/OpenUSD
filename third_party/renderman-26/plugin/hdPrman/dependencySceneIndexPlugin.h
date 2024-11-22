@@ -7,8 +7,11 @@
 #ifndef EXT_RMANPKG_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEPENDENCY_SCENE_INDEX_PLUGIN_H
 #define EXT_RMANPKG_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEPENDENCY_SCENE_INDEX_PLUGIN_H
 
-#include "pxr/pxr.h"
+#include "pxr/imaging/hd/dataSource.h"
+#include "pxr/imaging/hd/sceneIndexObserver.h"
 #include "pxr/imaging/hd/sceneIndexPlugin.h"
+
+#include "pxr/pxr.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 

@@ -43,6 +43,8 @@
 #include <utility>
 #include <vector>
 
+#define HDPRMAN_INSTANCER_MAX_TIME_SAMPLES 1
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class HdPrmanInstancer : public HdInstancer
@@ -148,8 +150,10 @@ private:
     // **              Private Types               **
     // **********************************************
 
-    using _GfMatrixSA = HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES>;
-    using _RtMatrixSA = HdTimeSampleArray<RtMatrix4x4, HDPRMAN_MAX_TIME_SAMPLES>;
+    using _GfMatrixSA =
+        HdTimeSampleArray<GfMatrix4d, HDPRMAN_INSTANCER_MAX_TIME_SAMPLES>;
+    using _RtMatrixSA =
+        HdTimeSampleArray<RtMatrix4x4, HDPRMAN_INSTANCER_MAX_TIME_SAMPLES>;
     
     struct _RtParamListHashFunctor
     {
@@ -554,7 +558,7 @@ private:
         const std::vector<riley::GeometryPrototypeId>& rileyPrototypeIds,
         const riley::CoordinateSystemList& coordSysList,
         const RtParamList& prototypeParams,
-        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES>&
+        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_INSTANCER_MAX_TIME_SAMPLES>&
             prototypeXform,
         const std::vector<riley::MaterialId>& rileyMaterialIds,
         const SdfPathVector& prototypePaths,
@@ -575,7 +579,7 @@ private:
         const std::vector<riley::GeometryPrototypeId>& rileyPrototypeIds,
         const riley::CoordinateSystemList& coordSysList,
         const RtParamList& prototypeParams,
-        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES>&
+        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_INSTANCER_MAX_TIME_SAMPLES>&
             prototypeXform,
         const std::vector<riley::MaterialId>& rileyMaterialIds,
         const SdfPathVector& prototypePaths,
@@ -638,7 +642,7 @@ private:
     // **********************************************   
 
     // This instancer's cached instance transforms
-    HdTimeSampleArray<VtMatrix4dArray, HDPRMAN_MAX_TIME_SAMPLES> _sa;
+    HdTimeSampleArray<VtMatrix4dArray, HDPRMAN_INSTANCER_MAX_TIME_SAMPLES> _sa;
 
     // This instancer's cached coordinate system list
     riley::CoordinateSystemList _coordSysList = { 0, nullptr };
