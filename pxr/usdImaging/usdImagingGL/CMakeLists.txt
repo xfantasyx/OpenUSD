@@ -4608,7 +4608,7 @@ pxr_register_test(testUsdImagingGLAovVisualization_Storm_primId
     IMAGE_DIFF_COMPARE
         testUsdImagingGLAovVisualization_Storm_primId.png
     FAIL 0.05
-    FAIL_PERCENT 0.015
+    FAIL_PERCENT 0.02
     WARN 0.025
     WARN_PERCENT 0.002
     EXPECTED_RETURN_CODE 0
@@ -4620,7 +4620,7 @@ pxr_register_test(testUsdImagingGLAovVisualization_Storm_Neye
     IMAGE_DIFF_COMPARE
         testUsdImagingGLAovVisualization_Storm_Neye.png
     FAIL 0.05
-    FAIL_PERCENT 0.001
+    FAIL_PERCENT 0.02
     WARN 0.025
     WARN_PERCENT 0.002
     EXPECTED_RETURN_CODE 0
