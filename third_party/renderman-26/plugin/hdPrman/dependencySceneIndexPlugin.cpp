@@ -25,7 +25,6 @@
 #include "pxr/imaging/hd/sceneIndexObserver.h"
 #include "pxr/imaging/hd/sceneIndexPluginRegistry.h"
 #include "pxr/imaging/hd/tokens.h"
-#include "pxr/imaging/hd/visibilitySchema.h"
 #include "pxr/imaging/hd/volumeFieldBindingSchema.h"
 #include "pxr/imaging/hd/volumeFieldSchema.h"
 
@@ -45,20 +44,12 @@
 #include <functional>
 #include <vector>
 
-#if PXR_VERSION >= 2405
-#include "pxr/imaging/hd/collectionsSchema.h"
-#endif
-
 PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEFINE_PRIVATE_TOKENS(
     _tokens,
     ((sceneIndexPluginName, "HdPrman_DependencySceneIndexPlugin"))
     (__dependenciesToFilters)
-
-    // Legacy; remove when minimum PXR_VERSION >= 2405
-    (collections)
-    (filterLink)
 );
 
 TF_REGISTRY_FUNCTION(TfType)
@@ -167,10 +158,19 @@ _BuildLightFilterDependenciesDs(const SdfPathVector &filterPaths)
     std::vector<HdDataSourceBaseHandle> deps;
     const size_t numFilters = filterPaths.size();
 
-    // For each filter targeted by the light, register 2 dependencies to
-    // forward light filter linking and visibility invalidation to the light.
-    const size_t numDeps =
-        1 /* __dependencies -> filters */ +  2 * numFilters;
+    // Register a dependency on each filter targeted by the light such that
+    // the invalidation of *any* locator on the filter invalidates the 'light'
+    // locator of the light prim.
+    // This matches the legacy dependency declaration in HdPrman_Light using
+    // HdChangeTracker::{Add,Remove}SprimSprimDependency.
+    // Note that this is conservative in a catch-all sense and we could instead
+    // register individual dependency entries for collection, visibility, light
+    // and material locators.
+    //
+    // Additionally, declare that the dependencies depends on the targeted 
+    // filters.
+    // 
+    const size_t numDeps = 1 /* __dependencies -> filters */ +  numFilters;
     names.reserve(numDeps);
     deps.reserve(numDeps);
 
@@ -190,41 +190,22 @@ _BuildLightFilterDependenciesDs(const SdfPathVector &filterPaths)
             .SetAffectedDataSourceLocator(dependenciesLocDs)
             .Build());
 
-    static HdLocatorDataSourceHandle filterLinkLocDs =
+    static HdLocatorDataSourceHandle emptyLocDs =
         HdRetainedTypedSampledDataSource<HdDataSourceLocator>::New(
-#if PXR_VERSION >= 2405
-            HdCollectionsSchema::GetDefaultLocator()
-                .Append(HdTokens->filterLink));
-#else
-            HdDataSourceLocator(_tokens->collections)
-                .Append(_tokens->filterLink));
-#endif
+            HdDataSourceLocator::EmptyLocator());
 
-    static HdLocatorDataSourceHandle filterVisLocDs =
+    static HdLocatorDataSourceHandle affectedLocatorDs = 
         HdRetainedTypedSampledDataSource<HdDataSourceLocator>::New(
-            HdVisibilitySchema::GetDefaultLocator());
-
-    static HdLocatorDataSourceHandle affectedLocatorDs =
-        HdRetainedTypedSampledDataSource<HdDataSourceLocator>::New(
-            // XXX This should be more targeted.
             HdLightSchema::GetDefaultLocator());
 
     for (const auto &filterPath : filterPaths) {
-        names.push_back(TfToken(filterPath.GetAsString() + "_linkDep"));
+        const std::string filterPathStr = filterPath.GetAsString();
+        names.push_back(TfToken(filterPathStr));
         deps.push_back(
             HdDependencySchema::Builder()
             .SetDependedOnPrimPath(
                 HdRetainedTypedSampledDataSource<SdfPath>::New(filterPath))
-            .SetDependedOnDataSourceLocator(filterLinkLocDs)
-            .SetAffectedDataSourceLocator(affectedLocatorDs)
-            .Build());
-
-        names.push_back(TfToken(filterPath.GetAsString() + "_visDep"));
-        deps.push_back(
-            HdDependencySchema::Builder()
-            .SetDependedOnPrimPath(
-                HdRetainedTypedSampledDataSource<SdfPath>::New(filterPath))
-            .SetDependedOnDataSourceLocator(filterVisLocDs)
+            .SetDependedOnDataSourceLocator(emptyLocDs)
             .SetAffectedDataSourceLocator(affectedLocatorDs)
             .Build());
     }
@@ -235,7 +216,6 @@ _BuildLightFilterDependenciesDs(const SdfPathVector &filterPaths)
 
 HdContainerDataSourceHandle
 _ComputeLightFilterDependencies(
-    const SdfPath &lightPrimPath,
     const HdContainerDataSourceHandle &lightPrimSource)
 {
 #if PXR_VERSION >= 2405
@@ -304,7 +284,7 @@ public:
                           HdDependenciesSchema::GetDefaultLocator(),
                           HdLazyContainerDataSource::New(
                               std::bind(_ComputeLightFilterDependencies,
-                                        primPath, prim.dataSource)))
+                                        prim.dataSource)))
                       .Finish() };
         }
         return prim;

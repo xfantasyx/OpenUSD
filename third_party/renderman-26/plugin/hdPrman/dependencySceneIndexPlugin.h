@@ -32,8 +32,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 ///
 /// 2. Light -> Light Filter
 /// This declaration registers the light data source locator of a light prim
-/// to be invalidated if the visibility or filter link collection of a
-/// targeted light filter changes.
+/// to be invalidated if any locator of a targeted light filter changes.
 ///
 class HdPrman_DependencySceneIndexPlugin : public HdSceneIndexPlugin
 {
