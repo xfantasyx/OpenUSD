@@ -117,11 +117,17 @@ public:
     /// "instanceName" is an optional identifier useful for applications to
     /// associate this render index with related resources (such as the scene
     /// index instances).
+    ///
+    /// "appName" is an application name that is used to load scene index
+    /// plugins that are enabled on a per-app basis, when scene index emulation
+    /// is enabled. See HdSceneIndexPluginRegistry for more information.
+    ///
     HD_API
     static HdRenderIndex* New(
         HdRenderDelegate *renderDelegate,
         HdDriverVector const& drivers,
-        const std::string &instanceName=std::string());
+        const std::string &instanceName=std::string(),
+        const std::string &appName=std::string());
 
     HD_API
     ~HdRenderIndex();
@@ -427,7 +433,8 @@ private:
     HdRenderIndex(
         HdRenderDelegate *renderDelegate, 
         HdDriverVector const& drivers,
-        const std::string &instanceName=std::string());
+        const std::string &instanceName,
+        const std::string &appName);
 
     // ---------------------------------------------------------------------- //
     // Private Helper methods 
