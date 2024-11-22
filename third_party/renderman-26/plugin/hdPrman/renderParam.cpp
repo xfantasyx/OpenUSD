@@ -2723,15 +2723,15 @@ HdPrman_RenderParam::_CreateFallbackMaterials()
 {
     // Default material
     {
+        SdfPath id("/_FallbackMaterial");
         std::vector<riley::ShadingNode> materialNodes;
         HdPrman_ConvertHdMaterialNetwork2ToRmanNodes(
-            HdPrmanMaterial_GetFallbackSurfaceMaterialNetwork(),
+            id, HdPrmanMaterial_GetFallbackSurfaceMaterialNetwork(),
             SdfPath("/PxrSurface"), // We assume this terminal name here
             &materialNodes
         );
         _fallbackMaterialId = _riley->CreateMaterial(
-            riley::UserId(stats::AddDataLocation("/_FallbackMaterial").
-                          GetValue()),
+            riley::UserId(stats::AddDataLocation(id.GetText()).GetValue()),
             {static_cast<uint32_t>(materialNodes.size()), materialNodes.data()},
             RtParamList());
     }

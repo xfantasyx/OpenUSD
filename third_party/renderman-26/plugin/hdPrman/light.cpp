@@ -142,7 +142,7 @@ _PopulateNodesFromMaterialResource(HdSceneDelegate *sceneDelegate,
 
     result->reserve(matNetwork2.nodes.size());
     if (!HdPrman_ConvertHdMaterialNetwork2ToRmanNodes(
-            matNetwork2, nodePath, result)) {
+            id, matNetwork2, nodePath, result)) {
         TF_WARN("Failed to convert HdMaterialNetwork to Renderman shading "
                 "nodes for '%s'", id.GetText());
         return false;
