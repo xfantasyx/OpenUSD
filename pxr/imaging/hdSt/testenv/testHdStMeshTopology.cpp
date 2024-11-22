@@ -48,12 +48,24 @@ TF_DEFINE_PRIVATE_TOKENS(
 );
 
 template <typename T>
-static VtArray<T>
-_BuildArray(T values[], int numValues)
+struct _EmptyArray
 {
-    VtArray<T> result(numValues);
-    std::copy(values, values+numValues, result.begin());
+};
+
+template <typename T, size_t N>
+static VtArray<T>
+_BuildArray(T const (&values)[N])
+{
+    VtArray<T> result(N);
+    std::copy(values, values+N, result.begin());
     return result;
+}
+
+template <typename T>
+static VtArray<T>
+_BuildArray(_EmptyArray<T> values)
+{
+    return VtArray<T>();
 }
 
 static bool
@@ -141,17 +153,17 @@ _CompareFaceVarying(HdStResourceRegistrySharedPtr const &registry,
 
 #define COMPARE_INDICES(registry, name, orientation, numVerts, verts, expected) \
     _CompareIndices(registry, name, orientation, \
-                   _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)), \
-                   _BuildArray(verts, sizeof(verts)/sizeof(int)), \
+                   _BuildArray(numVerts), \
+                   _BuildArray(verts), \
                     /*holes=*/VtIntArray(),                             \
-                   _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+                   _BuildArray(expected))
 
 #define COMPARE_INDICES_HOLE(registry, name, orientation, numVerts, verts, holes, expected) \
     _CompareIndices(registry, name, orientation,                                  \
-                    _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)), \
-                    _BuildArray(verts, sizeof(verts)/sizeof(int)),      \
-                    _BuildArray(holes, sizeof(holes)/sizeof(int)),      \
-                    _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+                    _BuildArray(numVerts), \
+                    _BuildArray(verts),      \
+                    _BuildArray(holes),      \
+                    _BuildArray(expected))
 
 template <typename Vec3Type>
 static bool
@@ -216,10 +228,10 @@ _CompareSmoothNormals(HdStResourceRegistrySharedPtr const &registry,
 
 #define COMPARE_SMOOTH_NORMALS(registry, name, orientation, numVerts, verts, points, expected) \
     _CompareSmoothNormals(registry, name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected))
 
 template <typename Vec3Type>
 bool
@@ -253,10 +265,10 @@ _CompareFlatNormals(std::string const & name,
 
 #define COMPARE_FLAT_NORMALS(name, orientation, numVerts, verts, points, expected) \
     _CompareFlatNormals(name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected))
 
 template <typename Vec3Type>
 bool
@@ -341,10 +353,10 @@ _CompareGpuSmoothNormals(HdStResourceRegistrySharedPtr const &registry,
 
 #define COMPARE_GPU_SMOOTH_NORMALS(registry, name, orientation, numVerts, verts, points, expected) \
     _CompareGpuSmoothNormals(registry, name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected))
 
 template <typename Vec3Type>
 bool
@@ -446,25 +458,25 @@ _CompareGpuFlatNormals(HdStResourceRegistrySharedPtr const &registry,
 
 #define COMPARE_GPU_FLAT_NORMALS_TRI(registry, name, orientation, numVerts, verts, points, expected) \
     _CompareGpuFlatNormals(registry, name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])), false)
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected), false)
 
 #define COMPARE_GPU_FLAT_NORMALS_QUAD(registry, name, orientation, numVerts, verts, points, expected) \
     _CompareGpuFlatNormals(registry, name, orientation, \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(expected, sizeof(expected)/sizeof(expected[0])), true)
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(expected), true)
 
 bool
 BasicTest(HdStResourceRegistrySharedPtr const &registry)
 {
     {
-        int numVerts[] = {};
-        int verts[] = {};
-        GfVec3i expected[] = { };
+        const _EmptyArray<int> numVerts;
+        const _EmptyArray<int> verts;
+        const _EmptyArray<GfVec3i> expected;
         if (!COMPARE_INDICES(registry, "empty",
                 _tokens->rightHanded, numVerts, verts, expected)) {
             return false;
@@ -581,10 +593,10 @@ bool
 ComputeNormalsTest(HdStResourceRegistrySharedPtr const &registry)
 {
     {
-        int numVerts[] = {};
-        int verts[] = {};
-        GfVec3f points[] = {};
-        GfVec3f expectedNormals[] = {};
+        const _EmptyArray<int> numVerts;
+        const _EmptyArray<int> verts;
+        const _EmptyArray<GfVec3f> points;
+        const _EmptyArray<GfVec3f> expectedNormals;
         if (!COMPARE_SMOOTH_NORMALS(registry, "empty", _tokens->rightHanded,
                 numVerts, verts, points, expectedNormals)) {
             return false;
@@ -592,13 +604,13 @@ ComputeNormalsTest(HdStResourceRegistrySharedPtr const &registry)
     }
     {
         int numVerts[] = {3};
-        int verts[] = {};
+        const _EmptyArray<int> verts;
         GfVec3f points[] = {
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 0.0, 0.0, 2.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        GfVec3f expectedNormals[] = {};
+        const _EmptyArray<GfVec3f> expectedNormals;
         if (!COMPARE_SMOOTH_NORMALS(
                 registry, "missing_faceVertexIndices",_tokens->rightHanded,
                 numVerts, verts, points, expectedNormals)) {
@@ -921,11 +933,11 @@ FaceVaryingTest(HdStResourceRegistrySharedPtr const &registry)
                          17, 18, 19, 17, 19, 20 };
 
     if (!_CompareFaceVarying(registry, "FaceVarying", _tokens->rightHanded,
-                             _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)),
-                             _BuildArray(verts, sizeof(verts)/sizeof(int)),
-                             _BuildArray(hole, sizeof(hole)/sizeof(int)),
-                             _BuildArray(fvarValues, sizeof(fvarValues)/sizeof(float)),
-                             _BuildArray(expected, sizeof(expected)/sizeof(float)))) {
+                             _BuildArray(numVerts),
+                             _BuildArray(verts),
+                             _BuildArray(hole),
+                             _BuildArray(fvarValues),
+                             _BuildArray(expected))) {
         return false;
     }
     return true;
@@ -966,18 +978,18 @@ InvalidTopologyTest(HdStResourceRegistrySharedPtr const &registry)
     };
 
     if (!_CompareIndices(registry, "Invalid", _tokens->rightHanded,
-                         _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)),
-                         _BuildArray(verts, sizeof(verts)/sizeof(int)),
-                         _BuildArray(hole, sizeof(hole)/sizeof(int)),
-                         _BuildArray(expected, sizeof(expected)/sizeof(expected[0])))) {
+                         _BuildArray(numVerts),
+                         _BuildArray(verts),
+                         _BuildArray(hole),
+                         _BuildArray(expected))) {
         return false;
     }
     if (!_CompareFaceVarying(registry, "InvalidFaceVarying", _tokens->rightHanded,
-                             _BuildArray(numVerts, sizeof(numVerts)/sizeof(int)),
-                             _BuildArray(verts, sizeof(verts)/sizeof(int)),
-                             _BuildArray(hole, sizeof(hole)/sizeof(int)),
-                             _BuildArray(fvarValues, sizeof(fvarValues)/sizeof(float)),
-                             _BuildArray(fvarExpected, sizeof(fvarExpected)/sizeof(float)))) {
+                             _BuildArray(numVerts),
+                             _BuildArray(verts),
+                             _BuildArray(hole),
+                             _BuildArray(fvarValues),
+                             _BuildArray(fvarExpected))) {
         return false;
     }
 

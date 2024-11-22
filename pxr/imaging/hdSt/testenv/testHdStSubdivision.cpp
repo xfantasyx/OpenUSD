@@ -41,12 +41,24 @@ TF_DEFINE_PRIVATE_TOKENS(
 );
 
 template <typename T>
-static VtArray<T>
-_BuildArray(T values[], int numValues)
+struct _EmptyArray
 {
-    VtArray<T> result(numValues);
-    std::copy(values, values+numValues, result.begin());
+};
+
+template <typename T, size_t N>
+static VtArray<T>
+_BuildArray(T const (&values)[N])
+{
+    VtArray<T> result(N);
+    std::copy(values, values + N, result.begin());
     return result;
+}
+
+template <typename T>
+static VtArray<T>
+_BuildArray(_EmptyArray<T> values)
+{
+    return VtArray<T>();
 }
 
 template <typename Vec3Type>
@@ -168,19 +180,19 @@ _DumpRefinedPoints(HdStResourceRegistrySharedPtr const &registry,
 
 #define DUMP_REFINED_POINTS(registry, name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
     _DumpRefinedPoints(registry, name, scheme, orientation,                        \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(holes, sizeof(holes)/sizeof(holes[0])), \
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(holes), \
                subdivTags, \
                /*level=*/1, false)
 
 #define DUMP_GPU_REFINED_POINTS(registry, name, scheme, orientation, numVerts, verts, points, holes, subdivTags) \
     _DumpRefinedPoints(registry, name, scheme, orientation,                        \
-               _BuildArray(numVerts, sizeof(numVerts)/sizeof(numVerts[0])), \
-               _BuildArray(verts, sizeof(verts)/sizeof(verts[0])), \
-               _BuildArray(points, sizeof(points)/sizeof(points[0])), \
-               _BuildArray(holes, sizeof(holes)/sizeof(holes[0])), \
+               _BuildArray(numVerts), \
+               _BuildArray(verts), \
+               _BuildArray(points), \
+               _BuildArray(holes), \
                subdivTags, \
                /*level=*/1, true)
 
@@ -215,7 +227,7 @@ SubdivisionTest(HdStResourceRegistrySharedPtr const &registry,
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        int holes[] = {};
+        const _EmptyArray<int> holes;
 
         if (!DUMP_REFINED_POINTS(
             registry, "triangle", scheme, _tokens->rightHanded,
@@ -263,7 +275,7 @@ SubdivisionTest(HdStResourceRegistrySharedPtr const &registry,
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        int holes[] = {};
+        const _EmptyArray<int> holes;
 
         if (!DUMP_REFINED_POINTS(
             registry, "triangle", scheme, _tokens->leftHanded,
@@ -312,7 +324,7 @@ SubdivisionTest(HdStResourceRegistrySharedPtr const &registry,
             GfVec3f(-1.0f,-1.0f, 0.0f ),
             GfVec3f( 1.0f,-1.0f, 0.0f ),
         };
-        int holes[] = {};
+        const _EmptyArray<int> holes;
 
         if (!DUMP_REFINED_POINTS(
             registry, "quad", scheme, _tokens->rightHanded,
@@ -364,7 +376,7 @@ SubdivisionTest(HdStResourceRegistrySharedPtr const &registry,
             GfVec3f( 3.0f, 0.5f, 0.0f),
             GfVec3f( 3.0f, 1.0f, 0.0f),
         };
-        int holes[] = {};
+        const _EmptyArray<int> holes;
 
         if (!DUMP_REFINED_POINTS(
             registry, "polygons", scheme, _tokens->rightHanded,
@@ -424,7 +436,7 @@ LoopSubdivisionTest(HdStResourceRegistrySharedPtr const &registry)
             GfVec3f(-1.0, 0.0, 0.0 ),
             GfVec3f( 1.0, 0.0, 0.0 ),
         };
-        int holes[] = {};
+        const _EmptyArray<int> holes;
 
         if (!DUMP_REFINED_POINTS(
             registry, "triangle", PxOsdOpenSubdivTokens->loop,
@@ -493,8 +505,8 @@ PrimitiveIDMappingTest(HdStResourceRegistrySharedPtr const &registry,
                        0, 2, 3, 4,
                        4, 3, 5, 6, 7 };
 
-    VtIntArray numVerts = _BuildArray(numVertsSrc, 3);
-    VtIntArray verts = _BuildArray(vertsSrc, 12);
+    VtIntArray numVerts = _BuildArray(numVertsSrc);
+    VtIntArray verts = _BuildArray(vertsSrc);
 
     int refineLevel = 1;
     HdMeshTopology m(PxOsdOpenSubdivTokens->catmullClark, _tokens->rightHanded,
@@ -606,17 +618,12 @@ SubdivTagTest(HdStResourceRegistrySharedPtr const &registry)
 
     PxOsdSubdivTags subdivTags;
 
-    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths,
-        sizeof(creaseLengths)/sizeof(creaseLengths[0])));
-    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices,
-        sizeof(creaseIndices)/sizeof(creaseIndices[0])));
-    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses,
-        sizeof(creaseSharpnesses)/sizeof(creaseSharpnesses[0])));
+    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths));
+    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices));
+    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses));
 
-    subdivTags.SetCornerIndices(_BuildArray(cornerIndices,
-        sizeof(cornerIndices)/sizeof(cornerIndices[0])));
-    subdivTags.SetCornerWeights( _BuildArray(cornerSharpnesses,
-        sizeof(cornerSharpnesses)/sizeof(cornerSharpnesses[0])));
+    subdivTags.SetCornerIndices(_BuildArray(cornerIndices));
+    subdivTags.SetCornerWeights( _BuildArray(cornerSharpnesses));
 
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
@@ -681,16 +688,13 @@ SubdivTagTest2(HdStResourceRegistrySharedPtr const &registry)
     int creaseLengths[] = { 2, 4 };
     int creaseIndices[] = { 2, 3, 1, 2, 5, 6 };
     float creaseSharpnesses[] = { 4.0f, 5.0f };
-    int holes[] = {};
+    const _EmptyArray<int> holes;
 
     PxOsdSubdivTags subdivTags;
 
-    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths,
-        sizeof(creaseLengths)/sizeof(creaseLengths[0])));
-    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices,
-        sizeof(creaseIndices)/sizeof(creaseIndices[0])));
-    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses,
-        sizeof(creaseSharpnesses)/sizeof(creaseSharpnesses[0])));
+    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths));
+    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices));
+    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses));
 
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
@@ -741,16 +745,13 @@ InvalidTopologyTest(HdStResourceRegistrySharedPtr const &registry)
     int creaseLengths[] = { 2, 4 };
     int creaseIndices[] = { 2, 3, 1, 2, 6, 7 };
     float creaseSharpnesses[] = { 4.0f, 5.0f };
-    int holes[] = {};
+    const _EmptyArray<int> holes;
 
     PxOsdSubdivTags subdivTags;
 
-    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths,
-        sizeof(creaseLengths)/sizeof(creaseLengths[0])));
-    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices,
-        sizeof(creaseIndices)/sizeof(creaseIndices[0])));
-    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses,
-        sizeof(creaseSharpnesses)/sizeof(creaseSharpnesses[0])));
+    subdivTags.SetCreaseLengths(_BuildArray(creaseLengths));
+    subdivTags.SetCreaseIndices(_BuildArray(creaseIndices));
+    subdivTags.SetCreaseWeights(_BuildArray(creaseSharpnesses));
 
     subdivTags.SetVertexInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
     subdivTags.SetFaceVaryingInterpolationRule(PxOsdOpenSubdivTokens->edgeOnly);
@@ -776,10 +777,10 @@ EmptyTopologyTest(HdStResourceRegistrySharedPtr const &registry)
 {
     std::cout << "\nEmpty Topology Test\n";
 
-    int numVerts[] = {};
-    int verts[] = {};
-    GfVec3f points[] = {};
-    int holes[] = {};
+    const _EmptyArray<int> numVerts;
+    const _EmptyArray<int> verts;
+    const _EmptyArray<GfVec3f> points;
+    const _EmptyArray<int> holes;
 
     if (!DUMP_REFINED_POINTS(registry, "subdivTag",
                              PxOsdOpenSubdivTokens->catmullClark,
@@ -829,7 +830,7 @@ TorusTopologyTest(HdStResourceRegistrySharedPtr const &registry)
         GfVec3f(   0, -0.5,    1),
         GfVec3f(   1, -0.5,    0)
     };
-    int holes[] = {};
+    const _EmptyArray<int> holes;
 
     PxOsdSubdivTags subdivTags;
     if (!DUMP_REFINED_POINTS(registry, "subdivTag",
