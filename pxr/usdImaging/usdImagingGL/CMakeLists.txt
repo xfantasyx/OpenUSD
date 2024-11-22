@@ -2410,7 +2410,7 @@ pxr_register_test(testUsdImagingGLResync_instancer
 pxr_register_test(testUsdImagingGLSublayerOperations
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLSublayerOperations"
     IMAGE_DIFF_COMPARE
-        default.png
+        initial.png
         mute_attr.png
         remove_sublayer_with_sub.png
         unmute_attr.png
