@@ -2326,14 +2326,6 @@ pxr_register_test(testHdStBufferArray
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStBufferArray-Run1-stdout.txt
     DIFF_COMPARE testHdStBufferArray-Run1-stdout.txt
-    DIFF_COMPARE_OPTIONS
-        "-I drawingShader"
-        "-I computeShader"
-        "-I gpuMemoryUsed"
-        "-I meshTopology"
-        "-I basisCurvesTopology"
-        "-I uboSize"
-        "-I ssboSize"
     TESTENV testHdStBufferArray
     ENV
         TF_DEBUG=HD_SAFE_MODE
@@ -2345,14 +2337,6 @@ pxr_register_test(testHdStBufferArrayInstancingDisabled
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStBufferArrayInstancingDisabled-Run1-stdout.txt
     DIFF_COMPARE testHdStBufferArrayInstancingDisabled-Run1-stdout.txt
-    DIFF_COMPARE_OPTIONS
-        "-I drawingShader"
-        "-I computeShader"
-        "-I gpuMemoryUsed"
-        "-I meshTopology"
-        "-I basisCurvesTopology"
-        "-I uboSize"
-        "-I ssboSize"
     TESTENV testHdStBufferArrayInstancingDisabled
     ENV
         HDST_ENABLE_RESOURCE_INSTANCING=0
@@ -2393,17 +2377,11 @@ pxr_register_test(testHdStClipPlanes2
 )
 
 function(register_codegen_tests suffix hgi_env)
-    # Ignore lines like: // line <number> "<filename>.glslfx"
-    # Using the regex: ^// line .\+ .\+$
-    # Note that diff regex uses "basic" syntax, which requires
-    # escaping '+' to make it behave as a special character.
-    set(line_ignore_pattern [['^// line .\+ .\+$']])
     pxr_register_test(testHdStCodeGen${suffix}_Mesh_Indirect
         COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStCodeGen --mesh"
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_mesh_indirect.out
         DIFF_COMPARE codegen_mesh_indirect.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2414,7 +2392,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_mesh_indirect_smoothNormals.out
         DIFF_COMPARE codegen_mesh_indirect_smoothNormals.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2425,7 +2402,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_mesh_indirect_doubleSided.out
         DIFF_COMPARE codegen_mesh_indirect_doubleSided.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2436,7 +2412,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_mesh_indirect_faceVarying.out
         DIFF_COMPARE codegen_mesh_indirect_faceVarying.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2447,7 +2422,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_mesh_indirect_instance.out
         DIFF_COMPARE codegen_mesh_indirect_instance.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2458,7 +2432,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_mesh_edgeonly.out
         DIFF_COMPARE codegen_mesh_edgeonly.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2469,7 +2442,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_mesh_edgeonly_blendwireframe.out
         DIFF_COMPARE codegen_mesh_edgeonly_blendwireframe.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2480,7 +2452,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_curves_indirect.out
         DIFF_COMPARE codegen_curves_indirect.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2491,7 +2462,6 @@ function(register_codegen_tests suffix hgi_env)
         EXPECTED_RETURN_CODE 0
         STDOUT_REDIRECT codegen_points_indirect.out
         DIFF_COMPARE codegen_points_indirect.out
-        DIFF_COMPARE_OPTIONS "-I ${line_ignore_pattern}"
         TESTENV testHdStCodeGen${suffix}
         ENV
             TF_DEBUG=HD_SAFE_MODE
@@ -2602,12 +2572,6 @@ pxr_register_test(testHdStDrawBatching
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStDrawBatching-Run1-stdout.txt
     DIFF_COMPARE testHdStDrawBatching-Run1-stdout.txt
-    DIFF_COMPARE_OPTIONS
-        "-I computeShader"
-        "-I drawingShader"
-        "-I gpuMemoryUsed"
-        "-I uboSize"
-        "-I ssboSize"
     TESTENV testHdStDrawBatching
     ENV
         TF_DEBUG=HD_SAFE_MODE
@@ -2773,12 +2737,6 @@ pxr_register_test(testHdStHWFaceCulling
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStHWFaceCulling-Run1-stdout.txt
     DIFF_COMPARE testHdStHWFaceCulling-Run1-stdout.txt
-    DIFF_COMPARE_OPTIONS
-        "-I computeShader"
-        "-I drawingShader"
-        "-I gpuMemoryUsed"
-        "-I uboSize"
-        "-I ssboSize"
     TESTENV testHdStHWFaceCulling
 )
 pxr_register_test(testHdStIndirectDrawBatchCodeGen
@@ -2925,7 +2883,6 @@ pxr_register_test(testHdStMaterialXShaderGen_SSdefault
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_SSdefault.out
     DIFF_COMPARE shadergen_SSdefault.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen_UsdPSdefault
@@ -2933,7 +2890,6 @@ pxr_register_test(testHdStMaterialXShaderGen_UsdPSdefault
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_UsdPSdefault.out
     DIFF_COMPARE shadergen_UsdPSdefault.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen_SSmarble
@@ -2941,7 +2897,6 @@ pxr_register_test(testHdStMaterialXShaderGen_SSmarble
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_SSmarble.out
     DIFF_COMPARE shadergen_SSmarble.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen_SScopper
@@ -2949,7 +2904,6 @@ pxr_register_test(testHdStMaterialXShaderGen_SScopper
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_SScopper.out
     DIFF_COMPARE shadergen_SScopper.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen_UsdPStextured
@@ -2957,7 +2911,6 @@ pxr_register_test(testHdStMaterialXShaderGen_UsdPStextured
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_UsdPStextured.out
     DIFF_COMPARE shadergen_UsdPStextured.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen_SStextured
@@ -2965,7 +2918,6 @@ pxr_register_test(testHdStMaterialXShaderGen_SStextured
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_SStextured.out
     DIFF_COMPARE shadergen_SStextured.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen_UsdPSglass
@@ -2973,7 +2925,6 @@ pxr_register_test(testHdStMaterialXShaderGen_UsdPSglass
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_UsdPSglass.out
     DIFF_COMPARE shadergen_UsdPSglass.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen8_SStextured_bindless
@@ -2981,7 +2932,6 @@ pxr_register_test(testHdStMaterialXShaderGen8_SStextured_bindless
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_SStextured_bindless.out
     DIFF_COMPARE shadergen_SStextured_bindless.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 pxr_register_test(testHdStMaterialXShaderGen_texcoord
@@ -2989,7 +2939,6 @@ pxr_register_test(testHdStMaterialXShaderGen_texcoord
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT shadergen_texcoord.out
     DIFF_COMPARE shadergen_texcoord.out
-    DIFF_COMPARE_OPTIONS -B -b
     TESTENV testHdStMaterialXShaderGen
 )
 endif()
@@ -3048,12 +2997,6 @@ pxr_register_test(testHdStPrimvars
     EXPECTED_RETURN_CODE 0
     STDOUT_REDIRECT testHdStPrimvars-Run1-stdout.txt
     DIFF_COMPARE testHdStPrimvars-Run1-stdout.txt
-    DIFF_COMPARE_OPTIONS
-        "-I computeShader"
-        "-I drawingShader"
-        "-I gpuMemoryUsed"
-        "-I uboSize"
-        "-I ssboSize"
     TESTENV testHdStPrimvars
     ENV
         HDST_ENABLE_MATERIAL_PRIMVAR_FILTERING=0
