@@ -142,15 +142,17 @@ HdDependencyForwardingSceneIndex::_PrimDirtied(
     _VisitedNodeSet *visited,
     HdSceneIndexObserver::DirtiedPrimEntries *moreDirtiedEntries)
 {
-    if (TF_VERIFY(visited)) {
-        _VisitedNode node = {primPath, sourceLocator};
-
-        if (visited->find(node) != visited->end()) {
-            return;
-        }
-
-        visited->insert(node);
+    if (!TF_VERIFY(visited)) {
+        return;
     }
+
+    _VisitedNode node = {primPath, sourceLocator};
+
+    if (visited->find(node) != visited->end()) {
+        return;
+    }
+
+    visited->insert(node);
 
     moreDirtiedEntries->emplace_back(primPath, sourceLocator);
 
@@ -158,13 +160,11 @@ HdDependencyForwardingSceneIndex::_PrimDirtied(
     const HdDataSourceLocator &depsLoc =
             HdDependenciesSchema::GetDefaultLocator();
     if (sourceLocator.Intersects(depsLoc)) {
-        if (TF_VERIFY(visited)) {
-            _VisitedNode dependenciesNode = {primPath, depsLoc};
-            if (visited->find(dependenciesNode) == visited->end()) {
-                visited->insert(dependenciesNode);
-                _ClearDependencies(primPath);
-                _UpdateDependencies(primPath);
-            }
+        _VisitedNode dependenciesNode = {primPath, depsLoc};
+        if (visited->find(dependenciesNode) == visited->end()) {
+            visited->insert(dependenciesNode);
+            _ClearDependencies(primPath);
+            _UpdateDependencies(primPath);
         }
     }
 
