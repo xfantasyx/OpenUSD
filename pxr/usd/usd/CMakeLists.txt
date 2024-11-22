@@ -62,11 +62,6 @@ pxr_library(usd
         stageLoadRules
         stagePopulationMask
         timeCode
-        validator
-        validatorTokens
-        validationContext
-        validationError
-        validationRegistry
         usdFileFormat
         usdaFileFormat
         usdcFileFormat
@@ -102,9 +97,6 @@ pxr_library(usd
         listEditImpl.h
         wrapUtils.h
         testenv/TestUsdResolverChangedResolver.h
-
-    CPPFILES
-        coreValidators.cpp
 
     PYTHON_CPPFILES
         moduleDeps.cpp
@@ -146,10 +138,6 @@ pxr_library(usd
         wrapTimeCode.cpp
         wrapUsdFileFormat.cpp
         wrapUtils.cpp
-        wrapValidationContext.cpp
-        wrapValidationError.cpp
-        wrapValidationRegistry.cpp
-        wrapValidator.cpp
         wrapVariantSets.cpp
         wrapVersion.cpp 
         wrapZipFile.cpp
@@ -269,10 +257,6 @@ pxr_test_scripts(
     testenv/testUsdTimeSamples.py
     testenv/testUsdTimeValueAuthoring.py
     testenv/testUsdUsdzFileFormat.py
-    testenv/testUsdValidationContextPy.py
-    testenv/testUsdValidationError.py
-    testenv/testUsdValidationRegistryPy.py
-    testenv/testUsdValidatorMetadata.py
     testenv/testUsdValueClips.py
     testenv/testUsdVariantEditing.py
     testenv/testUsdVariantFallbacks.py
@@ -300,33 +284,6 @@ pxr_build_test_shared_lib(TestUsdResolverChangedResolver
 
     CPPFILES
         testenv/TestUsdResolverChangedResolver.cpp
-)
-
-pxr_build_test_shared_lib(TestUsdValidationContextValidators
-    INSTALL_PREFIX UsdPlugins
-    LIBRARIES
-        tf
-        usd
-
-    CPPFILES
-        testenv/testUsdValidationContextValidators.cpp
-)
-
-pxr_build_test_shared_lib(TestUsdValidationRegistryPy
-    INSTALL_PREFIX UsdPlugins
-    LIBRARIES
-        tf
-        usd
-
-    CPPFILES
-        testenv/testUsdValidationRegistryPy.cpp
-)
-
-pxr_build_test(testUsdCoreValidators
-        LIBRARIES
-        usd
-        CPPFILES
-        testenv/testUsdCoreValidators.cpp
 )
 
 pxr_build_test(testUsdAttributeBlockingCpp
@@ -495,30 +452,6 @@ pxr_build_test(testUsdUsdzResolver
         usd
     CPPFILES
         testenv/testUsdUsdzResolver.cpp
-)
-
-pxr_build_test(testUsdValidator
-    LIBRARIES
-        tf
-        usd
-    CPPFILES
-        testenv/testUsdValidator.cpp
-)
-
-pxr_build_test(testUsdValidationContext
-    LIBRARIES
-        tf
-        usd
-    CPPFILES
-        testenv/testUsdValidationContext.cpp
-)
-
-pxr_build_test(testUsdValidationRegistry
-    LIBRARIES
-        tf
-        usd
-    CPPFILES
-        testenv/testUsdValidationRegistry.cpp
 )
 
 pxr_build_test(testUsdZipFile_CPP
@@ -804,21 +737,6 @@ pxr_install_test_dir(
 )
 
 pxr_install_test_dir(
-    SRC testenv/testUsdValidationContext
-    DEST testUsdValidationContext
-)
-
-pxr_install_test_dir(
-    SRC testenv/testUsdValidationContext
-    DEST testUsdValidationContextPy
-)
-
-pxr_install_test_dir(
-    SRC testenv/testUsdValidationRegistry
-    DEST testUsdValidationRegistry
-)
-
-pxr_install_test_dir(
     SRC testenv/testUsdZipFile.testenv
     DEST testUsdZipFile
 )
@@ -831,11 +749,6 @@ pxr_install_test_dir(
 pxr_install_test_dir(
     SRC testenv/testUsdUsdzBugGHSA01.testenv
     DEST testUsdUsdzBugGHSA01
-)
-
-pxr_register_test(testUsdCoreValidators
-        COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdCoreValidators"
-        EXPECTED_RETURN_CODE 0
 )
 
 pxr_register_test(testUsdAppliedAPISchemas
@@ -1073,16 +986,6 @@ pxr_register_test(testUsdMetadataCpp
     EXPECTED_RETURN_CODE 0
 )
 
-pxr_register_test(testUsdValidator
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidator"
-    EXPECTED_RETURN_CODE 0
-)
-
-pxr_register_test(testUsdValidationRegistry
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationRegistry"
-    EXPECTED_RETURN_CODE 0
-)
-
 #The following tests rely on plugins built specifically for them.
 #The build system currently doesn't support test-specific plugins
 #for static library builds, so we only enable these tests for
@@ -1090,10 +993,6 @@ pxr_register_test(testUsdValidationRegistry
 if (BUILD_SHARED_LIBS)
     pxr_register_test(testUsdResolverChanged
         COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdResolverChanged"
-        EXPECTED_RETURN_CODE 0
-    )
-    pxr_register_test(testUsdValidationContext
-        COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContext"
         EXPECTED_RETURN_CODE 0
     )
 endif()
@@ -1420,30 +1319,6 @@ pxr_register_test(testUsdUsdzResolver
 pxr_register_test(testUsdOpaqueAttributes
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdOpaqueAttributes"
-    EXPECTED_RETURN_CODE 0
-)
-
-pxr_register_test(testUsdValidatorMetadata
-    PYTHON
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidatorMetadata"
-    EXPECTED_RETURN_CODE 0
-)
-
-pxr_register_test(testUsdValidationError
-    PYTHON
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationError"
-    EXPECTED_RETURN_CODE 0
-)
-
-pxr_register_test(testUsdValidationContextPy
-    PYTHON
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationContextPy"
-    EXPECTED_RETURN_CODE 0
-)
-
-pxr_register_test(testUsdValidationRegistryPy
-    PYTHON
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdValidationRegistryPy"
     EXPECTED_RETURN_CODE 0
 )
 
