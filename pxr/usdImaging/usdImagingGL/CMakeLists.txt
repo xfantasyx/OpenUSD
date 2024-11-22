@@ -136,6 +136,14 @@ pxr_build_test(testUsdImagingGLResync
         testenv/testUsdImagingGLResync.cpp
 )
 
+pxr_build_test(testUsdImagingGLSublayerOperations
+    LIBRARIES
+        ${TEST_LIBS}
+    CPPFILES
+        unitTestGLDrawing.cpp
+        testenv/testUsdImagingGLSublayerOperations.cpp
+)
+
 pxr_build_test(testUsdImagingGLSurfaceShader
     LIBRARIES
         ${TEST_LIBS}
@@ -393,6 +401,11 @@ pxr_install_test_dir(
 pxr_install_test_dir(
     SRC testenv/testUsdImagingGLResync
     DEST testUsdImagingGLResync
+)
+
+pxr_install_test_dir(
+    SRC testenv/testUsdImagingGLSublayerOperations
+    DEST testUsdImagingGLSublayerOperations
 )
 
 pxr_install_test_dir(
@@ -2392,6 +2405,20 @@ pxr_register_test(testUsdImagingGLResync_instancer
     FAIL_PERCENT .03
     EXPECTED_RETURN_CODE 0
     TESTENV testUsdImagingGLResync
+)
+
+pxr_register_test(testUsdImagingGLSublayerOperations
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLSublayerOperations"
+    IMAGE_DIFF_COMPARE
+        default.png
+        mute_attr.png
+        remove_sublayer_with_sub.png
+        unmute_attr.png
+        add_sublayer_with_sub.png
+    FAIL .05
+    FAIL_PERCENT .03
+    EXPECTED_RETURN_CODE 0
+    TESTENV testUsdImagingGLSublayerOperations
 )
 
 pxr_register_test(testUsdImagingGLPurpose
