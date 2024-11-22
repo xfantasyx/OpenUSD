@@ -407,7 +407,7 @@ private:
         void citerate(std::function<void(const Key&, const T&)> fn) const
         {
             tbb::spin_rw_mutex::scoped_lock lock(_mutex, false);
-            for (const std::pair<const Key, const T>& p : _map) {
+            for (const auto& p : _map) {
                 fn(p.first, p.second);
             }
         }
