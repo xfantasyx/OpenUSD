@@ -4,12 +4,52 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 #
+# To generate a schema class, run this command:
+# mc run hdGenSchema --name ${SCHEMA_NAME}
+#
 [
     dict(
         SCHEMA_NAME = 'ALL_SCHEMAS',
         LIBRARY_PATH = 'ext/rmanpkg/plugin/renderman/plugin/hdPrman',
         INCLUDE_PATH = 'hdPrman',
         VERSION_GUARD_CONST_GETTER = True
+    ),
+
+    #--------------------------------------------------------------------------
+    # hdPrman/PrimvarIDVariation
+    dict(
+        SCHEMA_NAME = 'PrimvarIDVariation',
+        SCHEMA_TOKEN = 'primvars',
+        ADD_DEFAULT_LOCATOR = True,
+        MEMBERS = [
+            ('ALL_MEMBERS', 'HdPrimvarSchema',
+             # Getter methods are custom-written, not auto-generated.
+             dict(GETTER = False, ADD_LOCATOR = True)),
+            ('assemblyDepth', 'HdPrimvarSchema',
+             dict(DOC = '''
+             Temporary attribute indicating the number of assembly prims in the
+             hierarchy.''')),
+            ('assemblyID', 'HdPrimvarSchema',
+             dict(DOC = 'Unique ID for assembly prims.')),
+            ('componentID', 'HdPrimvarSchema',
+             dict(DOC = 'Unique IDs for component instances.')),
+            ('dustID', 'HdPrimvarSchema',
+             dict(DOC = 'Unique ID for dust FX.')),
+            ('gprimID', 'HdPrimvarSchema',
+             dict(DOC = 'Unique ID for gprims.')),
+            ('hasIDVariation', 'HdPrimvarSchema',
+             dict(DOC = '''
+             Temporary attribute indicating that ID variation attributes have
+             been authored on this prim.''')),
+            ('subcomponentID', 'HdPrimvarSchema',
+             dict(DOC = '''
+             Temporary attribute containing unique IDs for subcomponent 
+             instances.''')),
+            ('variationIdCodes', 'HdPrimvarSchema',
+             dict(DOC = '''
+             Sequence of numerical codes that correspond to prim types in the
+             hierarchy.''')),            
+        ],
     ),
 
     #--------------------------------------------------------------------------
