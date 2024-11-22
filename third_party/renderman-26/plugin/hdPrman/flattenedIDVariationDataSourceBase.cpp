@@ -109,6 +109,7 @@ HdPrman_FlattenedIDVariationDataSourceBase::Invalidate(
         if (_IsIDVariationToken(primvarName) &&
             _nameToPrimvarDataSource.erase(primvarName)) { 
             anyDirtied = true;
+            break;
         }
     }
 

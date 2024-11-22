@@ -34,8 +34,8 @@ TF_REGISTRY_FUNCTION(TfType)
 
 TF_REGISTRY_FUNCTION(HdSceneIndexPlugin)
 {
-    // We need an insertion point that's *after* general material resolve.
-    const HdSceneIndexPluginRegistry::InsertionPhase insertionPhase = 120;
+    // XXX insertionPhase cannot be greater than 1 for this plugin.
+    const HdSceneIndexPluginRegistry::InsertionPhase insertionPhase = 1;
 
     for (auto const& rendererDisplayName : HdPrman_GetPluginDisplayNames()) {
         HdSceneIndexPluginRegistry::GetInstance().RegisterSceneIndexForRenderer(
