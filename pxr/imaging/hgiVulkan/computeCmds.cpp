@@ -124,12 +124,12 @@ HgiVulkanComputeCmds::Dispatch(int dimX, int dimY)
         limits.maxComputeWorkGroupCount[1],
         limits.maxComputeWorkGroupCount[2]);
 
-    if (numWorkGroupsX > maxNumWorkGroups[0]) {
+    if (numWorkGroupsX > maxNumWorkGroups[0] && maxNumWorkGroups[0] > 0) {
         TF_WARN("Max number of work group available from device is %i, larger "
                 "than %i", maxNumWorkGroups[0], numWorkGroupsX);
         numWorkGroupsX = maxNumWorkGroups[0];
     }
-    if (numWorkGroupsY > maxNumWorkGroups[1]) {
+    if (numWorkGroupsY > maxNumWorkGroups[1] && maxNumWorkGroups[1] > 0) {
         TF_WARN("Max number of work group available from device is %i, larger "
                 "than %i", maxNumWorkGroups[1], numWorkGroupsY);
         numWorkGroupsY = maxNumWorkGroups[1];

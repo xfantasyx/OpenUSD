@@ -46,6 +46,8 @@ HgiVulkanCapabilities::HgiVulkanCapabilities(HgiVulkanDevice* device)
     vkGetPhysicalDeviceFeatures(physicalDevice, &vkDeviceFeatures);
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &vkMemoryProperties);
 
+    const bool isSupportVertexAttributeDivisor = device->IsSupportedExtension(VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME);
+
     // Vertex attribute divisor properties ext
     vkVertexAttributeDivisorProperties.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT;
@@ -54,9 +56,10 @@ HgiVulkanCapabilities::HgiVulkanCapabilities(HgiVulkanDevice* device)
     vkDeviceProperties2.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
     vkDeviceProperties2.properties = vkDeviceProperties;
-    vkDeviceProperties2.pNext = &vkVertexAttributeDivisorProperties;
+    vkDeviceProperties2.pNext = isSupportVertexAttributeDivisor ? &vkVertexAttributeDivisorProperties : nullptr;
     vkGetPhysicalDeviceProperties2(physicalDevice, &vkDeviceProperties2);
 
+    
     // Vertex attribute divisor features ext
     vkVertexAttributeDivisorFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT;
@@ -64,6 +67,7 @@ HgiVulkanCapabilities::HgiVulkanCapabilities(HgiVulkanDevice* device)
     // Barycentric features
     const bool barycentricExtSupported = device->IsSupportedExtension(
         VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME);
+    
     if (barycentricExtSupported) {
         vkBarycentricFeatures.sType =
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR;
@@ -76,7 +80,8 @@ HgiVulkanCapabilities::HgiVulkanCapabilities(HgiVulkanDevice* device)
     // Indexing features ext for resource bindings
     vkIndexingFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-    vkIndexingFeatures.pNext = &vkVertexAttributeDivisorFeatures;
+    vkIndexingFeatures.pNext = isSupportVertexAttributeDivisor ? &vkVertexAttributeDivisorFeatures : nullptr;
+
 
     // Vulkan 1.1 features
     vkVulkan11Features.sType =
@@ -98,8 +103,12 @@ HgiVulkanCapabilities::HgiVulkanCapabilities(HgiVulkanDevice* device)
         vkIndexingFeatures.shaderSampledImageArrayNonUniformIndexing &&
         vkIndexingFeatures.shaderStorageBufferArrayNonUniformIndexing);
 
-    TF_VERIFY(
+    if(isSupportVertexAttributeDivisor)
+    {
+        TF_VERIFY(
         vkVertexAttributeDivisorFeatures.vertexAttributeInstanceRateDivisor);
+    }
+    
 
     if (HgiVulkanIsDebugEnabled()) {
         TF_WARN("Selected GPU %s", vkDeviceProperties.deviceName);

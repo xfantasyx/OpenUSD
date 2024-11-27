@@ -78,6 +78,7 @@ HgiVulkanGraphicsPipeline::HgiVulkanGraphicsPipeline(
     // Vertex Input State
     // The input state includes the format and arrangement of the vertex data.
     //
+    bool isSupportVertexAttributeDivisor = device->IsSupportedExtension(VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME);
 
     std::vector<VkVertexInputBindingDescription> vertBufs;
     std::vector<VkVertexInputAttributeDescription> vertAttrs;
@@ -104,11 +105,14 @@ HgiVulkanGraphicsPipeline::HgiVulkanGraphicsPipeline(
             // multi-draw command.
             vib.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
     
+            if(isSupportVertexAttributeDivisor)
+            {
             VkVertexInputBindingDivisorDescriptionEXT vibDivisor;
             vibDivisor.binding = vbo.bindingIndex;
             vibDivisor.divisor = _device->GetDeviceCapabilities().
                 vkVertexAttributeDivisorProperties.maxVertexAttribDivisor;
             vertBindingDivisors.push_back(std::move(vibDivisor));
+            }
         } else {
             vib.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         }

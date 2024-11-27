@@ -329,15 +329,20 @@ HdStRenderPassState::Prepare(
         // Avoid shader permutations when using 0-4 clip planes by always
         // allocating storage for 4 clip planes.
         static constexpr size_t s_minNumClipPlanes = 4;
-        _clipPlanesBufferSize =
+        _clipPlanesBufferSize = clipPlanes.empty() ? 0 :
             std::max<size_t>(clipPlanes.size(), s_minNumClipPlanes);
+        
+        if(_clipPlanesBufferSize > 0)
+        {
         bufferSpecs.emplace_back(
             HdShaderTokens->clipPlanes,
             HdTupleType{HdTypeFloatVec4, _clipPlanesBufferSize});
+        
 
         bufferSpecs.emplace_back(
             HdShaderTokens->numClipPlanes,
             HdTupleType{HdTypeUInt32, 1});
+        }
 
         // allocate interleaved buffer
         _renderPassStateBar = 
@@ -455,11 +460,12 @@ HdStRenderPassState::Prepare(
                 HdShaderTokens->clipPlanes,
                 VtValue(clipPlanes),
                 clipPlanes.size()));
-    }
+    
     sources.push_back(
     std::make_shared<HdVtBufferSource>(
         HdShaderTokens->numClipPlanes,
         VtValue(uint32_t(clipPlanes.size()))));
+    }
 
     hdStResourceRegistry->AddSources(_renderPassStateBar, std::move(sources));
 
