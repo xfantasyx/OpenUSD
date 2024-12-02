@@ -417,7 +417,7 @@ TestStrings()
     
     // verify that TfStringify is agnostic to locale for
     // numerical values - note that the locale system
-    // takes over responsibility for deleting the std::numpunct instance
+    // takes over responsibility for deleting the separate_thousands instance
     std::locale originalLocale;
     std::locale::global(std::locale(std::locale(""), new separate_thousands));
     try
