@@ -913,65 +913,6 @@ TfStringify(std::string const& s)
     return s;
 }
 
-template <typename T>
-std::string
-_TfStringifyIntegralImpl(const T value)
-{
-    std::ostringstream stream;
-    stream.imbue(std::locale::classic());
-    stream << value;
-
-    return stream.str();
-}
-
-std::string
-TfStringify(short val)
-{
-    return _TfStringifyIntegralImpl<short>(val);
-}
-
-std::string
-TfStringify(unsigned short val)
-{
-    return _TfStringifyIntegralImpl<unsigned short>(val);
-}
-
-std::string
-TfStringify(int val)
-{
-    return _TfStringifyIntegralImpl<int>(val);
-}
-
-std::string
-TfStringify(unsigned int val)
-{
-    return _TfStringifyIntegralImpl<unsigned int>(val);
-}
-
-std::string
-TfStringify(long val)
-{
-    return _TfStringifyIntegralImpl<long>(val);
-}
-
-std::string
-TfStringify(unsigned long val)
-{
-    return _TfStringifyIntegralImpl<unsigned long>(val);
-}
-
-std::string
-TfStringify(long long val)
-{
-    return _TfStringifyIntegralImpl<long long>(val);
-}
-
-std::string
-TfStringify(unsigned long long val)
-{
-    return _TfStringifyIntegralImpl<unsigned long long>(val);
-}
-
 static
 const
 pxr_double_conversion::DoubleToStringConverter& 
