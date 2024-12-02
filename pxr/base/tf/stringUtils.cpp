@@ -28,7 +28,6 @@
 #include <type_traits>
 #include <vector>
 #include <memory>
-#include <charconv>
 
 #include "pxrDoubleConversion/double-conversion.h"
 #include "pxrDoubleConversion/utils.h"
