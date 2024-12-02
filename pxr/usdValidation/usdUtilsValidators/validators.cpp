@@ -6,6 +6,8 @@
 //
 
 #include "pxr/usd/ar/packageUtils.h"
+#include "pxr/usd/ar/resolver.h"
+#include "pxr/usd/usd/zipFile.h"
 #include "pxr/usd/usdUtils/dependencies.h"
 #include "pxr/usd/usdUtils/userProcessingFunc.h"
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
@@ -97,12 +99,60 @@ _PackageEncapsulationValidator(const UsdStagePtr &usdStage)
     return errors;
 }
 
+static UsdValidationErrorVector
+_FileExtensionValidator(const UsdStagePtr& usdStage) {
+    UsdValidationErrorVector errors;
+
+    const std::vector<TfToken> validExtensions = {TfToken("usda"),
+        TfToken("usdc"), TfToken("usd"), TfToken("usdz"), TfToken("png"),
+        TfToken("jpg"), TfToken("jpeg"), TfToken("exr")};
+
+    const SdfLayerHandle& rootLayer = usdStage->GetRootLayer();
+    const UsdZipFile& zipFile = UsdZipFile::Open(rootLayer->GetRealPath());
+
+    const std::vector<std::string> fileNames =
+        std::vector<std::string>(zipFile.begin(), zipFile.end());
+
+    for (const std::string& fileName : fileNames)
+    {
+        const std::string extension = ArGetResolver().GetExtension(fileName);
+
+        if (std::find(validExtensions.begin(), validExtensions.end(),
+            extension) == validExtensions.end())
+        {
+            return {
+                UsdValidationError {
+                    UsdUtilsValidationErrorNameTokens->
+                    unsupportedFileExtensionInPackage,
+                    UsdValidationErrorType::Error,
+                    UsdValidationErrorSites {
+                        UsdValidationErrorSite(
+                                rootLayer, SdfPath(rootLayer->GetIdentifier()))
+                    },
+                    TfStringPrintf("File '%s' in package '%s' has an unknown "
+                                   "unsupported extension '%s'.",
+                                   fileName.c_str(),
+                                   rootLayer->GetIdentifier().c_str(),
+                                   extension.c_str())
+                }
+            };
+        }
+    }
+
+    return errors;
+}
+
 TF_REGISTRY_FUNCTION(UsdValidationRegistry)
 {
     UsdValidationRegistry &registry = UsdValidationRegistry::GetInstance();
+
     registry.RegisterPluginValidator(
         UsdUtilsValidatorNameTokens->packageEncapsulationValidator,
         _PackageEncapsulationValidator);
+
+    registry.RegisterPluginValidator(
+        UsdUtilsValidatorNameTokens->fileExtensionValidator,
+        _FileExtensionValidator);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

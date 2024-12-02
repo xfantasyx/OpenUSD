@@ -3,6 +3,12 @@
         {
             "Info": {
                 "Validators": {
+                    "FileExtensionValidator": {
+                        "doc": "Only valid core layer extensions (.usd, .usda, .usdc, .usdz) and valid core texture extensions (.exr, .jpg, .jpeg, .png) are allowed in a package.",
+                        "keywords": [
+                            "UsdzValidators"
+                        ]
+                    },
                     "PackageEncapsulationValidator": {
                         "doc": "If the root layer is a package, then its recommended for the composed stage to not contain references to files outside the package. The package should be self-contained, warn if not.", 
                         "keywords": [
