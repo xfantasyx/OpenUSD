@@ -917,18 +917,11 @@ template <typename T>
 std::string
 _TfStringifyIntegralImpl(const T value)
 {
-    // plus one because for signed values, digits10 will give one less
-    // than what is actually needed in cases where the amount of characters
-    // could represent an overflow
-    constexpr size_t maxSize = std::numeric_limits<T>::digits10 + 1 +
-        (std::numeric_limits<T>::is_signed ? 1 : 0);
+    std::ostringstream stream;
+    stream.imbue(std::locale::classic());
+    stream << value;
 
-    std::string result(maxSize, '\0');
-    auto [ptr, ec] = std::to_chars(result.data(), result.data() + maxSize, value);
-    TF_DEV_AXIOM(ec == std::errc());
-    result.resize(std::distance(result.data(), ptr));
-
-    return result;
+    return stream.str();
 }
 
 std::string
