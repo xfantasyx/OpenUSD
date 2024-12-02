@@ -25,6 +25,8 @@ PXR_NAMESPACE_OPEN_SCOPE
       "usdShadeValidators:MaterialBindingRelationships"))                      \
     ((materialBindingCollectionValidator,                                      \
       "usdShadeValidators:MaterialBindingCollectionValidator"))                \
+    ((normalMapTextureValidator,                                               \
+      "usdShadeValidators:NormalMapTextureValidator"))                         \
     ((shaderSdrCompliance, "usdShadeValidators:ShaderSdrCompliance"))          \
     ((subsetMaterialBindFamilyName,                                            \
       "usdShadeValidators:SubsetMaterialBindFamilyName"))                      \
@@ -47,6 +49,13 @@ PXR_NAMESPACE_OPEN_SCOPE
     ((incompatShaderPropertyWarning, "IncompatShaderPropertyWarning"))         \
     ((mismatchPropertyType, "MismatchedPropertyType"))                         \
     ((missingFamilyNameOnGeomSubset, "MissingFamilyNameOnGeomSubset"))         \
+    ((nonShaderConnection, "NonShaderConnection"))                             \
+    ((invalidFile, "InvalidFile"))                                             \
+    ((invalidShaderPrim, "InvalidShaderPrim"))                                 \
+    ((invalidSourceColorSpace, "InvalidSourceColorSpace"))                     \
+    ((nonCompliantBiasAndScale, "NonCompliantBiasAndScale"))                   \
+    ((nonCompliantScale, "NonCompliantScaleValues"))                           \
+    ((nonCompliantBias, "NonCompliantBiasValues"))                             \
     ((invalidFamilyType, "InvalidFamilyType"))
 
 /// \def USD_SHADE_VALIDATOR_NAME_TOKENS
