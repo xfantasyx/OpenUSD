@@ -562,7 +562,8 @@ void ValidateError(const UsdValidationErrorVector& errors,
         const TfToken& expectedErrorIdentifier,
         const SdfPath& expectedPrimPath,
         const std::string& expectedErrorMsg,
-        UsdValidationErrorType expectedErrorType = UsdValidationErrorType::Error)
+        UsdValidationErrorType expectedErrorType =
+        UsdValidationErrorType::Error)
 {
     TF_AXIOM(errors.size() == 1);
     TF_AXIOM(errors[0].GetIdentifier() == expectedErrorIdentifier);
@@ -579,7 +580,8 @@ void
 TestUsdShadeNormalMapTextureValidator()
 {
     UsdValidationRegistry &registry = UsdValidationRegistry::GetInstance();
-    const UsdValidationValidator *validator = registry.GetOrLoadValidatorByName(
+    const UsdValidationValidator *validator =
+        registry.GetOrLoadValidatorByName(
         UsdShadeValidatorNameTokens->normalMapTextureValidator);
     TF_AXIOM(validator);
 
@@ -624,7 +626,7 @@ TestUsdShadeNormalMapTextureValidator()
     UsdValidationErrorVector errors = validator->Validate(
         usdPreviewSurfaceShaderPrim);
     TfToken expectedErrorIdentifier(
-                "usdShadeValidators:NormalMapTextureValidator.NonCompliantBiasAndScale");
+    "usdShadeValidators:NormalMapTextureValidator.NonCompliantBiasAndScale");
     std::string expectedErrorMsg =
         TfStringPrintf("UsdUVTexture prim <%s> reads 8 bit Normal Map "
                            "@./normalMap.jpg@, which requires that "
@@ -652,15 +654,15 @@ TestUsdShadeNormalMapTextureValidator()
     // Verify the non-compliant bias value error occurs.
     errors = validator->Validate(usdPreviewSurfaceShaderPrim);
     expectedErrorIdentifier = TfToken(
-                "usdShadeValidators:NormalMapTextureValidator.NonCompliantBiasValues");
+    "usdShadeValidators:NormalMapTextureValidator.NonCompliantBiasValues");
     expectedErrorMsg =
         TfStringPrintf("UsdUVTexture prim <%s> reads an 8 bit Normal "
                             "Map, but has non-standard inputs:bias value of "
-                            "(%.6g, %.6g, %.6g, %.6g). inputs:bias must be set to "
-                            "[-1,-1,-1,0] so as to fulfill the requirements "
-                            "of the normals to be in tangent space of "
-                            "[(-1,-1,-1), (1,1,1)] as documented in the "
-                            "UsdPreviewSurface and UsdUVTexture docs.",
+                            "(%.6g, %.6g, %.6g, %.6g). inputs:bias must be "
+                            "set to [-1,-1,-1,0] so as to fulfill the "
+                            "requirements of the normals to be in tangent "
+                            "space of [(-1,-1,-1), (1,1,1)] as documented in "
+                            "the UsdPreviewSurface and UsdUVTexture docs.",
                             usdUvTextureShader.GetPath().GetText(),
                             nonCompliantVector[0], nonCompliantVector[1],
                             nonCompliantVector[2], nonCompliantVector[3]);
@@ -676,7 +678,7 @@ TestUsdShadeNormalMapTextureValidator()
     // Verify the non-compliant scale value error occurs.
     errors = validator->Validate(usdPreviewSurfaceShaderPrim);
     expectedErrorIdentifier = TfToken(
-                "usdShadeValidators:NormalMapTextureValidator.NonCompliantScaleValues");
+    "usdShadeValidators:NormalMapTextureValidator.NonCompliantScaleValues");
     expectedErrorMsg =
         TfStringPrintf("UsdUVTexture prim <%s> reads an 8 bit Normal "
                            "Map, but has non-standard inputs:scale value "
@@ -701,7 +703,7 @@ TestUsdShadeNormalMapTextureValidator()
     // Verify the invalid sourceColorSpace error occurs.
     errors = validator->Validate(usdPreviewSurfaceShaderPrim);
     expectedErrorIdentifier = TfToken(
-                "usdShadeValidators:NormalMapTextureValidator.InvalidSourceColorSpace");
+    "usdShadeValidators:NormalMapTextureValidator.InvalidSourceColorSpace");
     expectedErrorMsg =
         TfStringPrintf("UsdUVTexture prim <%s> that reads"
                            " Normal Map @%s@ should set "
@@ -746,7 +748,7 @@ TestUsdShadeNormalMapTextureValidator()
     // Verify the invalid input file error occurs.
     errors = validator->Validate(usdPreviewSurfaceShaderPrim);
     expectedErrorIdentifier =
-                TfToken("usdShadeValidators:NormalMapTextureValidator.InvalidFile");
+        TfToken("usdShadeValidators:NormalMapTextureValidator.InvalidFile");
     expectedErrorMsg =
         TfStringPrintf("UsdUVTexture prim <%s> has invalid or unresolvable "
                                  "inputs:file of @%s@",

@@ -565,8 +565,10 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
         return {};
     }
 
-    const UsdShadeAttributeVector valueProducingAttributes = UsdShadeUtils::GetValueProducingAttributes(normalInput);
-    if (valueProducingAttributes.empty() || valueProducingAttributes[0].GetPrim() == usdPrim) {
+    const UsdShadeAttributeVector valueProducingAttributes =
+        UsdShadeUtils::GetValueProducingAttributes(normalInput);
+    if (valueProducingAttributes.empty() ||
+        valueProducingAttributes[0].GetPrim() == usdPrim) {
         return {};
     }
 
@@ -590,8 +592,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
                     UsdValidationErrorSite(usdPrim.GetStage(),
                                            usdPrim.GetPath())
                 },
-                TfStringPrintf("UsdPreviewSurface.normal on prim <%s> is connected to a"
-                                 " non-Shader prim.",
+                TfStringPrintf("UsdPreviewSurface.normal on prim <%s> is "
+                               "connected to a non-Shader prim.",
                            usdPrim.GetPath().GetText())
             }
         };
@@ -609,7 +611,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
         return {};
     }
 
-    const auto getInputValue = [](const UsdShadeShader &inputShader, const TfToken &token, auto& outputValue) -> bool {
+    const auto getInputValue = [](const UsdShadeShader &inputShader,
+        const TfToken &token, auto& outputValue) -> bool {
         const UsdShadeInput input = inputShader.GetInput(token);
         if (!input) {
             return false;
@@ -619,7 +622,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
             UsdShadeUtils::GetValueProducingAttributes(input);
 
         // Query value producing attributes for input values.
-        // This has to be a length of 1, otherwise no attribute is producing a value.
+        // This has to be a length of 1, otherwise no attribute is producing
+        // a value.
         // We require an input parameter producing the value.
         if (valueProducingAttributes.empty() ||
             valueProducingAttributes.size() != 1 ||
@@ -648,8 +652,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
                     UsdValidationErrorSite(usdPrim.GetStage(),
                                            sourcePrim.GetPath())
             },
-            TfStringPrintf("UsdUVTexture prim <%s> has invalid or unresolvable "
-                                 "inputs:file of @%s@",
+            TfStringPrintf("UsdUVTexture prim <%s> has invalid or "
+                           "unresolvable inputs:file of @%s@",
                            sourcePrim.GetPath().GetText(), assetPath.c_str()));
     }
 
@@ -671,7 +675,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
 
     TfToken colorSpace;
     TfToken rawColorSpace("raw");
-    bool valueForColorSpaceExists = getInputValue(sourceShader, TfToken("sourceColorSpace"), colorSpace);
+    bool valueForColorSpaceExists =
+        getInputValue(sourceShader, TfToken("sourceColorSpace"), colorSpace);
     if (!valueForColorSpaceExists || colorSpace != rawColorSpace) {
         errors.emplace_back(
             UsdShadeValidationErrorNameTokens->invalidSourceColorSpace,
@@ -688,10 +693,12 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
     }
 
     GfVec4f bias;
-    bool valueForBiasExists = getInputValue(sourceShader, TfToken("bias"), bias);
+    bool valueForBiasExists = getInputValue(sourceShader, TfToken("bias"),
+        bias);
 
     GfVec4f scale;
-    bool valueForScaleExists = getInputValue(sourceShader, TfToken("scale"), scale);
+    bool valueForScaleExists = getInputValue(sourceShader, TfToken("scale"),
+        scale);
 
     if (!(valueForBiasExists && valueForScaleExists))
     {
@@ -699,14 +706,16 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
             UsdShadeValidationErrorNameTokens->nonCompliantBiasAndScale,
             UsdValidationErrorType::Error,
             UsdValidationErrorSites{
-                UsdValidationErrorSite(usdPrim.GetStage(), sourcePrim.GetPath())
+                UsdValidationErrorSite(usdPrim.GetStage(),
+                    sourcePrim.GetPath())
             },
             TfStringPrintf("UsdUVTexture prim <%s> reads 8 bit Normal Map "
                            "@%s@, which requires that inputs:scale be set to "
                            "(2, 2, 2, 1) and inputs:bias be set to "
                            "(-1, -1, -1, 0) for proper interpretation as per "
                            "the UsdPreviewSurface and UsdUVTexture docs.",
-                           sourcePrim.GetPath().GetText(), textureAssetPath.GetAssetPath().c_str())
+                           sourcePrim.GetPath().GetText(),
+                           textureAssetPath.GetAssetPath().c_str())
         );
         return errors;
     }
@@ -724,15 +733,16 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
             UsdShadeValidationErrorNameTokens->nonCompliantScale,
             UsdValidationErrorType::Warn,
             UsdValidationErrorSites{
-                UsdValidationErrorSite(usdPrim.GetStage(), sourcePrim.GetPath())
+                UsdValidationErrorSite(usdPrim.GetStage(),
+                    sourcePrim.GetPath())
             },
             TfStringPrintf("UsdUVTexture prim <%s> reads an 8 bit Normal "
                            "Map, but has non-standard inputs:scale value "
-                           "of (%.6g, %.6g, %.6g, %.6g). inputs:scale must be set to "
-                           "(2, 2, 2, 1) so as fulfill the requirements "
-                           "of the normals to be in tangent space of "
-                           "[(-1,-1,-1), (1,1,1)] as documented in the "
-                           "UsdPreviewSurface and UsdUVTexture docs.",
+                           "of (%.6g, %.6g, %.6g, %.6g). inputs:scale must "
+                           "be set to (2, 2, 2, 1) so as fulfill the "
+                           "requirements of the normals to be in tangent "
+                           "space of [(-1,-1,-1), (1,1,1)] as documented in "
+                           "the UsdPreviewSurface and UsdUVTexture docs.",
                            sourcePrim.GetPath().GetText(),
                            scale[0], scale[1], scale[2], scale[3])
         );
@@ -751,15 +761,16 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
             UsdShadeValidationErrorNameTokens->nonCompliantBias,
             UsdValidationErrorType::Error,
             UsdValidationErrorSites{
-                UsdValidationErrorSite(usdPrim.GetStage(), sourcePrim.GetPath())
+                UsdValidationErrorSite(usdPrim.GetStage(),
+                    sourcePrim.GetPath())
             },
             TfStringPrintf("UsdUVTexture prim <%s> reads an 8 bit Normal "
                             "Map, but has non-standard inputs:bias value of "
-                            "(%.6g, %.6g, %.6g, %.6g). inputs:bias must be set to "
-                            "[-1,-1,-1,0] so as to fulfill the requirements "
-                            "of the normals to be in tangent space of "
-                            "[(-1,-1,-1), (1,1,1)] as documented in the "
-                            "UsdPreviewSurface and UsdUVTexture docs.",
+                            "(%.6g, %.6g, %.6g, %.6g). inputs:bias must be "
+                            "set to [-1,-1,-1,0] so as to fulfill the "
+                            "requirements of the normals to be in tangent "
+                            "space of [(-1,-1,-1), (1,1,1)] as documented in "
+                            "the UsdPreviewSurface and UsdUVTexture docs.",
                             sourcePrim.GetPath().GetText(),
                             bias[0], bias[1], bias[2], bias[3])
         );
