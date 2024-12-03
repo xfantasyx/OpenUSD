@@ -7,6 +7,7 @@
 
 #include "pxr/base/arch/systemInfo.h"
 #include "pxr/base/tf/pathUtils.h"
+#include "pxr/usd/usdGeom/xform.h"
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
@@ -30,7 +31,7 @@ TestUsdUsdzValidators()
     UsdValidationValidatorMetadataVector metadata
         = registry.GetValidatorMetadataForPlugin(
             _tokens->usdUtilsValidatorsPlugin);
-    TF_AXIOM(metadata.size() == 2);
+    TF_AXIOM(metadata.size() == 3);
     // Since other validators can be registered with a UsdUtilsValidators
     // keyword, our validators registered in usd are a subset of the entire
     // set.
@@ -41,7 +42,8 @@ TestUsdUsdzValidators()
 
     const std::set<TfToken> expectedValidatorNames
         = { UsdUtilsValidatorNameTokens->packageEncapsulationValidator,
-            UsdUtilsValidatorNameTokens->fileExtensionValidator };
+            UsdUtilsValidatorNameTokens->fileExtensionValidator,
+        UsdUtilsValidatorNameTokens->missingReferenceValidator };
 
     TF_AXIOM(validatorMetadataNameSet == expectedValidatorNames);
 }
@@ -160,12 +162,55 @@ TestFileExtensionValidator()
     TF_AXIOM(errors.empty());
 }
 
+static void
+TestMissingReferenceValidator()
+{
+    UsdValidationRegistry& registry = UsdValidationRegistry::GetInstance();
+
+    // Verify the validator exists
+    const UsdValidationValidator *validator = registry.GetOrLoadValidatorByName(
+            UsdUtilsValidatorNameTokens->missingReferenceValidator);
+
+    TF_AXIOM(validator);
+
+    // Create stage with a reference that does not exist
+    const UsdStageRefPtr& stage = UsdStage::CreateInMemory();
+
+    const UsdGeomXform xform = UsdGeomXform::Define(stage, SdfPath("/Xform"));
+    const SdfReference badReference("doesNotExist.usd");
+    xform.GetPrim().GetReferences().AddReference(badReference);
+
+    UsdValidationErrorVector errors = validator->Validate(stage);
+
+    // Verify both the layer & asset errors are present
+    const TfToken expectedIdentifier =
+        TfToken(
+        "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
+    TF_AXIOM(errors.size() == 1);
+    TF_AXIOM(errors[0].GetIdentifier() == expectedIdentifier);
+    TF_AXIOM(errors[0].GetType() == UsdValidationErrorType::Error);
+    TF_AXIOM(errors[0].GetSites().size() == 1);
+    TF_AXIOM(!errors[0].GetSites()[0].GetLayer().IsInvalid());
+    const std::string expectedErrorMessage = "Found unresolvable external "
+                                             "dependency 'doesNotExist.usd'.";
+    TF_AXIOM(errors[0].GetMessage() == expectedErrorMessage);
+
+    // Remove the nonexistent reference, add an existing reference
+    xform.GetPrim().GetReferences().RemoveReference(badReference);
+    xform.GetPrim().GetReferences().AddReference("pass.usdz");
+    errors = validator->Validate(stage);
+
+    // Verify the errors are gone
+    TF_AXIOM(errors.empty());
+}
+
 int
 main()
 {
     TestUsdUsdzValidators();
     TestPackageEncapsulationValidator();
     TestFileExtensionValidator();
+    TestMissingReferenceValidator();
 
     return EXIT_SUCCESS;
 }
