@@ -100,7 +100,8 @@ _PackageEncapsulationValidator(const UsdStagePtr &usdStage)
 }
 
 static UsdValidationErrorVector
-_FileExtensionValidator(const UsdStagePtr& usdStage) {
+_FileExtensionValidator(const UsdStagePtr& usdStage)
+{
     UsdValidationErrorVector errors;
 
     const std::set<TfToken> validExtensions = {TfToken("usda"),
@@ -143,6 +144,45 @@ _FileExtensionValidator(const UsdStagePtr& usdStage) {
     return errors;
 }
 
+static UsdValidationErrorVector
+_CompressionValidator(const UsdStagePtr& usdStage) {
+    const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
+    const UsdZipFile zipFile = UsdZipFile::Open(rootLayer->GetRealPath().c_str());
+
+    std::string packagePath = ArSplitPackageRelativePathOuter(rootLayer->GetIdentifier()).first;
+    if (!zipFile)
+    {
+        return {};
+    }
+
+    UsdValidationErrorVector errors;
+    for(auto it = zipFile.begin(); it != zipFile.end(); ++it)
+    {
+        const UsdZipFile::FileInfo &fileInfo = it.GetFileInfo();
+        if (fileInfo.compressionMethod != 0)
+        {
+            const std::string &fileName = *it;
+            errors.emplace_back(
+                UsdUtilsValidationErrorNameTokens->compressionDetected,
+                UsdValidationErrorType::Error,
+                UsdValidationErrorSites {
+                    UsdValidationErrorSite(
+                            rootLayer, SdfPath(fileName))
+                },
+                TfStringPrintf(
+                ("File '%s' in package '%s' has "
+                "compression. Compression method is '%u', actual size "
+                "is %lu. Uncompressed size is %lu."),
+                    fileName.c_str(), packagePath.c_str(),
+                    fileInfo.compressionMethod,
+                    fileInfo.size, fileInfo.uncompressedSize)
+            );
+        }
+    }
+
+    return errors;
+}
+
 TF_REGISTRY_FUNCTION(UsdValidationRegistry)
 {
     UsdValidationRegistry &registry = UsdValidationRegistry::GetInstance();
@@ -153,7 +193,12 @@ TF_REGISTRY_FUNCTION(UsdValidationRegistry)
 
     registry.RegisterPluginValidator(
         UsdUtilsValidatorNameTokens->fileExtensionValidator,
-        _FileExtensionValidator);
+    _FileExtensionValidator);
+
+    registry.RegisterPluginValidator(
+        UsdUtilsValidatorNameTokens->compressionValidator,
+    _CompressionValidator);
+
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE
