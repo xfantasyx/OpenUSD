@@ -533,24 +533,35 @@ ArchGetFileName(FILE *file)
     return result;
 #elif defined (ARCH_OS_WINDOWS)
     string result;
-    WCHAR filePath[MAX_PATH];
+    std::vector<WCHAR> filePath(MAX_PATH);
     HANDLE hfile = _FileToWinHANDLE(file);
-    if (GetFinalPathNameByHandleW(hfile, filePath, MAX_PATH, VOLUME_NAME_DOS)) {
+    DWORD dwSize = GetFinalPathNameByHandleW(hfile, filePath.data(), MAX_PATH, VOLUME_NAME_DOS);
+    // * dwSize == 0. Fail.
+    // * dwSize < MAX_PATH. Success, and dwSize returns the size without null terminator.
+    // * dwSize >= MAX_PATH. Buffer is too small, and dwSize returns the size with null terminator.
+    if (dwSize >= MAX_PATH) {
+        filePath.resize(dwSize);
+        dwSize = GetFinalPathNameByHandleW(hfile, filePath.data(), dwSize, VOLUME_NAME_DOS);
+    }
+
+    if (dwSize != 0) {
         size_t outSize = WideCharToMultiByte(
-            CP_UTF8, 0, filePath,
-            wcslen(filePath),
+            CP_UTF8, 0, filePath.data(),
+            dwSize,
             NULL, 0, NULL, NULL);
         result.resize(outSize);
         WideCharToMultiByte(
-            CP_UTF8, 0, filePath,
+            CP_UTF8, 0, filePath.data(),
             -1,
             &result.front(), outSize, NULL, NULL);
 
-        if (result.length() > 4)
+        // See https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats
+        // for format of DOS device paths. For UNC paths, it's returned as untouched.
+        if (result.length() > 4 &&
+            result.compare(0, 8, "\\\\?\\UNC\\") != 0)
         {
-            // It needs to strip the path prefix as
-            // the path returned is DOS device path, and the
-            // syntax is one of:
+            // Otherwise, strip prefix from paths returned by GetFinalPathNameByHandleW,
+            // which is one of:
             //   \\.\C:\Test\Foo.txt
             //   \\?\C:\Test\Foo.txt
             if (result.compare(0, 4, "\\\\?\\") == 0 ||
