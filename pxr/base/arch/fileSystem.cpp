@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cerrno>
+#include <filesystem>
 #include <memory>
 #include <utility>
 
@@ -555,21 +556,11 @@ ArchGetFileName(FILE *file)
             -1,
             &result.front(), outSize, NULL, NULL);
 
+        // Strip path prefix if necessary.
         // See https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats
-        // for format of DOS device paths. For UNC paths, it's returned as untouched.
-        if (result.length() > 4 &&
-            result.compare(0, 8, "\\\\?\\UNC\\") != 0)
-        {
-            // Otherwise, strip prefix from paths returned by GetFinalPathNameByHandleW,
-            // which is one of:
-            //   \\.\C:\Test\Foo.txt
-            //   \\?\C:\Test\Foo.txt
-            if (result.compare(0, 4, "\\\\?\\") == 0 ||
-                result.compare(0, 4, "\\\\.\\") == 0)
-            {
-                result.erase(0, 4);
-            }
-        }
+        // for format of DOS device paths.
+        auto canonicalPath = std::filesystem::canonical(result);
+        result = canonicalPath.string();
     }
     return result;                                        
 #else
