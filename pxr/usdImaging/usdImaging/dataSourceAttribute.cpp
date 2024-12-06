@@ -58,6 +58,7 @@ static _FactoryMap _CreateFactoryMap()
     map[SdfValueTypeNames->IntArray] = _FactoryImpl<VtArray<int>>;
     map[SdfValueTypeNames->Int] = _FactoryImpl<int>;
     map[SdfValueTypeNames->Int2] = _FactoryImpl<GfVec2i>;
+    map[SdfValueTypeNames->Int64Array] = _FactoryImpl<VtArray<int64_t>>;
     map[SdfValueTypeNames->Matrix4dArray] = _FactoryImpl<VtArray<GfMatrix4d>>;
     map[SdfValueTypeNames->Matrix4d] = _FactoryImpl<GfMatrix4d>;
     map[SdfValueTypeNames->Normal3fArray] = _FactoryImpl<VtArray<GfVec3f>>;
