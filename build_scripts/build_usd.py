@@ -687,15 +687,15 @@ def InstallZlib(context, force, buildArgs):
         # They're not required for use on any platforms, so we elide them
         # for efficiency
         PatchFile("CMakeLists.txt",
-                  [("add_executable(example test/example.c)",
+                [("add_executable(example test/example.c)",
                     ""),
-                   ("add_executable(minigzip test/minigzip.c)",
+                ("add_executable(minigzip test/minigzip.c)",
                     ""),
-                   ("target_link_libraries(example zlib)",
+                ("target_link_libraries(example zlib)",
                     ""),
-                   ("target_link_libraries(minigzip zlib)",
+                ("target_link_libraries(minigzip zlib)",
                     ""),
-                   ("add_test(example example)",
+                ("add_test(example example)",
                     "")])
         RunCMake(context, force, buildArgs)
 
@@ -735,8 +735,8 @@ def InstallBoost_Helper(context, force, buildArgs):
     #   simplicity.
     # - Building with Python 3.11 requires boost 1.82.0 or newer
     #   (https://github.com/boostorg/python/commit/a218ba)
-    # - Building on MacOS requires v1.82.0 or later for C++17 support starting 
-    #   with Xcode 15. We choose to use this version for all MacOS builds for 
+    # - Building on MacOS requires v1.82.0 or later for C++17 support starting
+    #   with Xcode 15. We choose to use this version for all MacOS builds for
     #   simplicity."
     # - Building with Python 3.10 requires boost 1.76.0 or newer
     #   (https://github.com/boostorg/python/commit/cbd2d9)
@@ -958,7 +958,7 @@ ONETBB_URL = "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.9.0.z
 
 def InstallOneTBB(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(ONETBB_URL, context, force)):
-        RunCMake(context, force, 
+        RunCMake(context, force,
                  ['-DTBB_TEST=OFF',
                   '-DTBB_STRICT=OFF'] + buildArgs)
 
@@ -1823,6 +1823,13 @@ Installation Script for USD
 
 Builds and installs USD and 3rd-party dependencies to specified location.
 
+The `build_usd.py` script by default downloads and installs the zlib library
+when necessary on platforms other than Linux. For those platforms, this behavior
+may be overridden by supplying the `--no-zlib` command line option. If this
+option is used, then the dependencies of OpenUSD which use zlib must be able to
+discover the user supplied zlib in the build environment via the means of cmake's
+`find_package` utility.
+
 - Libraries:
 The following is a list of libraries that this script will download and build
 as needed. These names can be used to identify libraries for various script
@@ -2086,6 +2093,13 @@ subgroup.add_argument("--usdview", dest="build_usdview",
 subgroup.add_argument("--no-usdview", dest="build_usdview",
                       action="store_false", 
                       help="Do not build usdview")
+subgroup = group.add_mutually_exclusive_group()
+subgroup.add_argument("--zlib", dest="build_zlib",
+                      action="store_true", default=True,
+                      help="Install zlib on behalf of dependencies")
+subgroup.add_argument("--no-zlib", dest="build_zlib",
+                      action="store_false",
+                      help="Do not install zlib for dependencies (default)")
 
 group = parser.add_argument_group(title="Imaging Plugin Options")
 subgroup = group.add_mutually_exclusive_group()
@@ -2307,6 +2321,9 @@ class InstallContext:
         self.buildUsdview = (self.buildUsdImaging and 
                              self.buildPython and 
                              args.build_usdview)
+        
+        # - zlib
+        self.buildZlib = args.build_zlib
 
         # - Imaging plugins
         self.buildEmbree = self.buildImaging and args.build_embree
@@ -2377,7 +2394,7 @@ if extraPythonPaths:
 if context.buildOneTBB:
     TBB = ONETBB
 
-requiredDependencies = [ZLIB, TBB]
+requiredDependencies = [TBB]
 
 if context.buildBoostPython:
     requiredDependencies += [BOOST]
@@ -2395,18 +2412,18 @@ if context.buildMaterialX:
 
 if context.buildImaging:
     if context.enablePtex:
-        requiredDependencies += [PTEX]
+        requiredDependencies += [PTEX, ZLIB]
 
     requiredDependencies += [OPENSUBDIV]
 
     if context.enableOpenVDB:
-        requiredDependencies += [BLOSC, BOOST, OPENEXR, OPENVDB, TBB]
+        requiredDependencies += [BLOSC, BOOST, OPENEXR, OPENVDB, TBB, ZLIB]
     
     if context.buildOIIO:
-        requiredDependencies += [BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO]
+        requiredDependencies += [BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO, ZLIB]
 
     if context.buildOCIO:
-        requiredDependencies += [OPENCOLORIO]
+        requiredDependencies += [OPENCOLORIO, ZLIB]
 
     if context.buildEmbree:
         requiredDependencies += [TBB, EMBREE]
@@ -2417,11 +2434,12 @@ if context.buildUsdview:
 if context.buildAnimXTests:
     requiredDependencies += [ANIMX]
 
-# Assume zlib already exists on Linux platforms and don't build
-# our own. This avoids potential issues where a host application
-# loads an older version of zlib than the one we'd build and link
-# our libraries against.
-if Linux():
+# Linux provides zlib. Skipping it here avoids issues where a host 
+# application loads a different version of zlib than the one we build against.
+# Building zlib is the default when a dependency requires it, although OpenUSD
+# itself does not require it. The --no-zlib flag can be passed to the build
+# script to allow the dependency to find zlib in the build environment.
+if Linux() or not context.buildZlib:
     requiredDependencies.remove(ZLIB)
 
 # Error out if user is building monolithic library on windows with draco plugin
