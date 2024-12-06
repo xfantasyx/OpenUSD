@@ -176,6 +176,8 @@ struct HdxRenderTaskParams
     GfVec4f pointColor;
     float pointSize;
     bool enableLighting;
+    // Note: enableIdRender is deprecated in favor of using the primId AOV, and 
+    // will be removed as a param soon.
     bool enableIdRender;
     float alphaThreshold;
     bool enableSceneMaterials;
