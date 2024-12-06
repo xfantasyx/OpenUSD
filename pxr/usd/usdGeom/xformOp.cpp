@@ -577,14 +577,14 @@ UsdGeomXformOp::GetOpTransform(UsdGeomXformOp::Type const opType,
         } else if (opType == TypeScaleZ) {
             return GfMatrix4d(GfVec4d(1, 1, doubleVal, 1));
         } else if (opType == TypeRotateX) {
-            return GfMatrix4d(1.).SetRotate(GfRotation(GfVec3d::XAxis(), 
-                                                       doubleVal));
+            return GfMatrix4d(GfRotation(GfVec3d::XAxis(), doubleVal), 
+                              GfVec3d(0.));
         } else if (opType == TypeRotateY) {
-            return GfMatrix4d(1.).SetRotate(GfRotation(GfVec3d::YAxis(), 
-                                                       doubleVal));
+            return GfMatrix4d(GfRotation(GfVec3d::YAxis(), doubleVal),
+                              GfVec3d(0.));
         } else if (opType == TypeRotateZ) {
-            return GfMatrix4d(1.).SetRotate(GfRotation(GfVec3d::ZAxis(), 
-                                                       doubleVal));
+            return GfMatrix4d(GfRotation(GfVec3d::ZAxis(), doubleVal),
+                              GfVec3d(0.));
         } else {
             TF_CODING_ERROR("Invalid combination of opType (%s) and opVal (%s). "
                 "Returning identity matrix.", TfEnum::GetName(opType).c_str(), 
@@ -608,8 +608,9 @@ UsdGeomXformOp::GetOpTransform(UsdGeomXformOp::Type const opType,
     if (isVecVal) {
         switch(opType) {
             case TypeTranslate:
-                if (isInverseOp) 
+                if (isInverseOp) {
                     vec3dVal = -vec3dVal;
+                }
                 return GfMatrix4d(1.).SetTranslate(vec3dVal);
             case TypeScale:
                 if (isInverseOp) {
@@ -617,10 +618,12 @@ UsdGeomXformOp::GetOpTransform(UsdGeomXformOp::Type const opType,
                                        1/vec3dVal[1], 
                                        1/vec3dVal[2]);
                 }
-                return GfMatrix4d(1.).SetScale(vec3dVal);
+                return GfMatrix4d(GfVec4d(vec3dVal[0], vec3dVal[1], 
+                                          vec3dVal[2], 1));
             default: {
-                if (isInverseOp) 
+                if (isInverseOp) {
                     vec3dVal = -vec3dVal;
+                }
                 // Must be one of the 3-axis rotates.
                 GfMatrix3d xRot(GfRotation(GfVec3d::XAxis(), vec3dVal[0]));
                 GfMatrix3d yRot(GfRotation(GfVec3d::YAxis(), vec3dVal[1]));
@@ -659,7 +662,7 @@ UsdGeomXformOp::GetOpTransform(UsdGeomXformOp::Type const opType,
                             TfStringify(opVal).c_str());
                         return GfMatrix4d(1.);
                 }
-                return GfMatrix4d(1.).SetRotate(rotationMat);
+                return GfMatrix4d(rotationMat, GfVec3d(0.));
             }
         }
     }
