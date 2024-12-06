@@ -778,6 +778,19 @@ _Convert(HdSceneDelegate *sceneDelegate, SdfPath const& id,
                                      shutterInterval[1],
 #endif
                                      &samples);
+
+        // The HdSceneIndexAdapterSceneDelegate uses a zero sample count
+        // to indicate that the scene index provides a container data source
+        // for the primvar schema but no data source.
+        //
+        // In this case, we should skip the primvar. It is a unfortnate though
+        // to use samples.count == 0 because that could mask some other
+        // potential error.
+        //
+        if (samples.count == 0) {
+            continue;
+        }
+
         // XXX: The motion blur scene index plugin ensures that only a single
         // sample at offset 0 is returned for any primvar on which Prman does
         // not support motion samples. Currently, that's all primvars except P.
