@@ -503,10 +503,14 @@ def UpdateSchemaWithSdrNode(schemaLayer, sdrNode, renderContext="",
         shaderNodesForShaderIdAttrs = [
             node for node in sdrRegistry.GetShaderNodesByIdentifier(
                 sdrNode.GetIdentifier())]
+        shaderIdAttrNames = set()
         for node in shaderNodesForShaderIdAttrs:
-            shaderIdAttrName = Sdf.Path.JoinIdentifier( \
+
+            shaderIdAttrNames.add(Sdf.Path.JoinIdentifier( \
                     [renderContext, node.GetContext(), 
-                        PropertyDefiningKeys.SHADER_ID])
+                        PropertyDefiningKeys.SHADER_ID]))
+        
+        for shaderIdAttrName in shaderIdAttrNames:
             shaderIdAttrSpec = Sdf.AttributeSpec(primSpec, shaderIdAttrName,
                     Sdf.ValueTypeNames.Token, Sdf.VariabilityUniform)
 
@@ -518,7 +522,7 @@ def UpdateSchemaWithSdrNode(schemaLayer, sdrNode, renderContext="",
             # We are iterating on sdrNodes which are guaranteed to be registered
             # with sdrRegistry and it only makes sense to add shaderId for these
             # shader nodes, so directly get the identifier from the node itself.
-            shaderIdAttrSpec.default = node.GetIdentifier()
+            shaderIdAttrSpec.default = sdrNode.GetIdentifier()
 
     # Extra attrSpec
     schemaBasePrimDefinition = \
