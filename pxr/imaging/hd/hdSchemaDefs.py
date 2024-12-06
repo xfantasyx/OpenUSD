@@ -819,6 +819,7 @@
         SCHEMA_TOKEN = 'displayStyle',
         ADD_DEFAULT_LOCATOR = True,
         MEMBERS = [
+            ('ALL_MEMBERS', '', dict(ADD_LOCATOR = True)),
             ('refineLevel', T_INT, {}),
             ('flatShadingEnabled', T_BOOL, {}),
             ('displacementEnabled', T_BOOL, {}),
@@ -826,10 +827,8 @@
             ('pointsShadingEnabled', T_BOOL, {}),
             ('materialIsFinal', T_BOOL, {}),
             ('shadingStyle', T_TOKEN, {}),
-            ('reprSelector', T_TOKENARRAY,
-             dict(ADD_LOCATOR = True)),
-            ('cullStyle', T_TOKEN,
-             dict(ADD_LOCATOR = True)),
+            ('reprSelector', T_TOKENARRAY, {}),
+            ('cullStyle', T_TOKEN, {}),
         ],
     ),
 

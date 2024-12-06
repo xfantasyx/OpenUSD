@@ -589,26 +589,61 @@ HdDirtyBitsTranslator::RprimLocatorSetToDirtyBits(
 
     // Locator (*): displayStyle
 
-    if (_FindLocator(HdLegacyDisplayStyleSchema::GetDefaultLocator(), end, &it,
-                     false)) {
-        if (HdLegacyDisplayStyleSchema::GetDefaultLocator().HasPrefix(*it)) {
-            bits |= HdChangeTracker::DirtyDisplayStyle |
-                    HdChangeTracker::DirtyCullStyle |
-                    HdChangeTracker::DirtyRepr;
-        } else {
-            do {
-                if (it->HasPrefix(
-                        HdLegacyDisplayStyleSchema::GetCullStyleLocator())) {
+    {
+        using Schema = HdLegacyDisplayStyleSchema;
+    
+        if (_FindLocator(Schema::GetDefaultLocator(), end, &it, false)) {
+            if (Schema::GetDefaultLocator().HasPrefix(*it)) {
+                bits |= HdChangeTracker::DirtyDisplayStyle |
+                        HdChangeTracker::DirtyCullStyle |
+                        HdChangeTracker::DirtyRepr;
+            } else {
+                if (_FindLocator(
+                        Schema::GetCullStyleLocator(),
+                        end, &it)) {
                     bits |= HdChangeTracker::DirtyCullStyle;
-                } else if (it->HasPrefix(
-                        HdLegacyDisplayStyleSchema::GetReprSelectorLocator())) {
-                    bits |= HdChangeTracker::DirtyRepr;
-                } else {
+                }                    
+                if (_FindLocator(
+                        Schema::GetDisplacementEnabledLocator(),
+                        end, &it)) {
                     bits |= HdChangeTracker::DirtyDisplayStyle;
                 }
-                ++it;
-            } while(it != end && it->Intersects(
-                        HdLegacyDisplayStyleSchema::GetDefaultLocator()));
+                if (_FindLocator(
+                        Schema::GetFlatShadingEnabledLocator(),
+                        end, &it)) {
+                    bits |= HdChangeTracker::DirtyDisplayStyle;
+                }
+                if (_FindLocator(
+                        Schema::GetMaterialIsFinalLocator(),
+                        end, &it)) {
+                    bits |= HdChangeTracker::DirtyDisplayStyle;
+                }
+                if (_FindLocator(
+                        Schema::GetOccludedSelectionShowsThroughLocator(),
+                        end, &it)) {
+                    bits |= HdChangeTracker::DirtyDisplayStyle;
+                }
+                if (_FindLocator(
+                        Schema::GetPointsShadingEnabledLocator(),
+                        end, &it)) {
+                    bits |= HdChangeTracker::DirtyDisplayStyle;
+                }
+                if (_FindLocator(
+                        Schema::GetRefineLevelLocator(),
+                        end, &it)) {
+                    bits |= HdChangeTracker::DirtyDisplayStyle;
+                }
+                if (_FindLocator(
+                        Schema::GetReprSelectorLocator(),
+                        end, &it)) {
+                    bits |= HdChangeTracker::DirtyRepr;
+                }
+                if (_FindLocator(
+                        Schema::GetShadingStyleLocator(),
+                        end, &it)) {
+                    bits |= HdChangeTracker::DirtyDisplayStyle;
+                }
+            }                
         }
     }
 
