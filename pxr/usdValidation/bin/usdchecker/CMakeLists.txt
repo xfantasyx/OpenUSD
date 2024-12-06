@@ -14,8 +14,8 @@ if (NOT BUILD_SHARED_LIBS)
     return()
 endif()
 
-set(PXR_PREFIX pxr/usd)
-set(PXR_PACKAGE usd)
+set(PXR_PREFIX pxr/usdValidation)
+set(PXR_PACKAGE usdchecker)
 
 pxr_cpp_bin(usdchecker
     LIBRARIES

@@ -12,7 +12,7 @@
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
 
-#include <pxr/usd/sdf/fileFormat.h>
+#include "pxr/usd/sdf/fileFormat.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 

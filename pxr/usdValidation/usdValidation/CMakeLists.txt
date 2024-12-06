@@ -1,4 +1,4 @@
-set(PXR_PREFIX pxr/usd)
+set(PXR_PREFIX pxr/usdValidation)
 set(PXR_PACKAGE usdValidation)
 
 pxr_library(usdValidation
@@ -6,6 +6,7 @@ pxr_library(usdValidation
         sdf
         plug
         tf
+        usd
         work
         ${TBB_tbb_LIBRARY}
 
@@ -29,6 +30,7 @@ pxr_library(usdValidation
         moduleDeps.cpp
 
     PYMODULE_CPPFILES
+        module.cpp
         wrapContext.cpp
         wrapError.cpp
         wrapRegistry.cpp
