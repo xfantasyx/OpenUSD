@@ -863,6 +863,10 @@ HdPrman_ConvertPrimvars(HdSceneDelegate *sceneDelegate, SdfPath const& id,
     }
 }
 
+// In 2302 and beyond, we can use
+// HdPrman_PreviewSurfacePrimvarsSceneIndexPlugin.
+#if PXR_VERSION < 2302
+
 void
 HdPrman_TransferMaterialPrimvarOpinions(HdSceneDelegate *sceneDelegate,
                                         SdfPath const& materialId,
@@ -895,6 +899,8 @@ HdPrman_TransferMaterialPrimvarOpinions(HdSceneDelegate *sceneDelegate,
         }
     }
 }
+
+#endif // PXR_VERSION >= 2302
 
 RtParamList
 HdPrman_RenderParam::ConvertAttributes(HdSceneDelegate *sceneDelegate,
