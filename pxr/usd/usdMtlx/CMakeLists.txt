@@ -41,9 +41,6 @@ pxr_library(usdMtlx
     PUBLIC_HEADERS
         api.h
 
-    PYTHON_CPPFILES
-        moduleDeps.cpp
-
     PYMODULE_CPPFILES
         module.cpp
         wrapBackdoor.cpp

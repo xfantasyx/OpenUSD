@@ -42,9 +42,6 @@ pxr_library(usdUtils
         api.h
         userProcessingFunc.h
 
-    PYTHON_CPPFILES
-        moduleDeps.cpp
-
     PYMODULE_CPPFILES
         module.cpp
         wrapAuthoring.cpp

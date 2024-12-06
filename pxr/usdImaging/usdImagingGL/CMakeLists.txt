@@ -48,9 +48,6 @@ pxr_library(usdImagingGL
     PRIVATE_HEADERS
         unitTestGLDrawing.h
 
-    PYTHON_CPPFILES
-        moduleDeps.cpp
-
     PYMODULE_CPPFILES
         module.cpp
         wrapEngine.cpp

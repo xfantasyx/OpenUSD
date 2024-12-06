@@ -98,9 +98,6 @@ pxr_library(usd
         wrapUtils.h
         testenv/TestUsdResolverChangedResolver.h
 
-    PYTHON_CPPFILES
-        moduleDeps.cpp
-
     PYMODULE_CPPFILES
         wrapAttribute.cpp
         wrapAttributeQuery.cpp

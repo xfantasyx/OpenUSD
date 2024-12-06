@@ -127,9 +127,6 @@ pxr_library(sdf
         instantiatePool.h
         valueTypePrivate.h
 
-    PYTHON_CPPFILES
-        moduleDeps.cpp
-
     PYMODULE_CPPFILES
         module.cpp
         wrapArrayAssetPath.cpp

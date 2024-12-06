@@ -30,9 +30,7 @@ pxr_library(usdGeom
 
     PUBLIC_HEADERS
         api.h
-        
-    PYTHON_CPPFILES
-        moduleDeps.cpp
+
 
     PRIVATE_CLASSES
         samplingUtils

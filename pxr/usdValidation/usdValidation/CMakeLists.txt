@@ -26,9 +26,6 @@ pxr_library(usdValidation
     CPPFILES
         coreValidators.cpp
 
-    PYTHON_CPPFILES
-        moduleDeps.cpp
-
     PYMODULE_CPPFILES
         module.cpp
         wrapContext.cpp
