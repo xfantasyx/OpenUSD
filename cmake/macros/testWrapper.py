@@ -162,8 +162,10 @@ def _diff(fileName, baselineDir, verbose, failuresDir=None):
     isWindows = platform.system() == 'Windows'
 
     diffTool = shutil.which('diff')
+    diffToolBaseArgs = ['--strip-trailing-cr']
     if not diffTool and isWindows:
         diffTool = shutil.which('fc.exe')
+        diffToolBaseArgs = ['/t']
 
     if not diffTool:
         sys.stderr.write(
@@ -179,7 +181,7 @@ def _diff(fileName, baselineDir, verbose, failuresDir=None):
 
     for fileToDiff in filesToDiff:
         baselineFile = _resolvePath(baselineDir, fileToDiff)
-        cmd = [diffTool, baselineFile, fileToDiff]
+        cmd = [diffTool, *diffToolBaseArgs, baselineFile, fileToDiff]
         if verbose:
             print("diffing with {0}".format(cmd))
 
