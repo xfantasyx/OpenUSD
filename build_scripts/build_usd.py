@@ -2439,7 +2439,7 @@ if context.buildAnimXTests:
 # Building zlib is the default when a dependency requires it, although OpenUSD
 # itself does not require it. The --no-zlib flag can be passed to the build
 # script to allow the dependency to find zlib in the build environment.
-if Linux() or not context.buildZlib:
+if (Linux() or not context.buildZlib) and ZLIB in requiredDependencies:
     requiredDependencies.remove(ZLIB)
 
 # Error out if user is building monolithic library on windows with draco plugin
