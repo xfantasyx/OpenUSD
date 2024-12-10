@@ -579,8 +579,8 @@ TestUsdShadeNormalMapTextureValidator()
     normalInput.ConnectToSource(
         SdfPath("/RootMaterial/NormalTexture.outputs:rgb"));
 
-    // Verify invalid bias & scale error, both are required, but neither
-    // exist yet
+    // Verify invalid bias & scale error, they are expected to exist but
+    // do not.
     {
         const UsdValidationErrorVector errors = validator->Validate(
     usdPreviewSurfaceShaderPrim);
