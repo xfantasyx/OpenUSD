@@ -551,7 +551,7 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
     const UsdShadeShader shader(usdPrim);
 
     TfToken shaderId;
-    TfToken UsdPreviewSurface("UsdPreviewSurface");
+    const TfToken UsdPreviewSurface("UsdPreviewSurface");
 
     // We may have failed to fetch an identifier for asset/source-based
     // nodes. OR, we could potentially be driven by a UsdPrimvarReader,
@@ -560,7 +560,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
         return {};
     }
 
-    const UsdShadeInput normalInput = shader.GetInput(TfToken("normal"));
+    const TfToken Normal("normal");
+    const UsdShadeInput normalInput = shader.GetInput(Normal);
     if (!normalInput) {
         return {};
     }
@@ -600,7 +601,7 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
     }
 
     TfToken sourceShaderId;
-    TfToken UsdUVTexture("UsdUVTexture");
+    const TfToken UsdUVTexture("UsdUVTexture");
 
     bool gotShaderSourceId = sourceShader.GetShaderId(&sourceShaderId);
 
@@ -611,8 +612,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
         return {};
     }
 
-    const auto getInputValue = [](const UsdShadeShader &inputShader,
-        const TfToken &token, auto& outputValue) -> bool {
+    const auto _GetInputValue = [](const UsdShadeShader &inputShader,
+        const TfToken &token, auto *outputValue) -> bool {
         const UsdShadeInput input = inputShader.GetInput(token);
         if (!input) {
             return false;
@@ -631,13 +632,14 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
             return false;
         }
 
-        return valueProducingAttributes[0].Get(&outputValue,
+        return valueProducingAttributes[0].Get(outputValue,
             UsdTimeCode::EarliestTime());
     };
 
     SdfAssetPath textureAssetPath;
-    bool valueForFileExists = getInputValue(sourceShader, TfToken("file"),
-        textureAssetPath);
+    const TfToken File("file");
+    bool valueForFileExists = _GetInputValue(sourceShader, File,
+        &textureAssetPath);
 
     UsdValidationErrorVector errors;
 
@@ -657,7 +659,7 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
                            sourcePrim.GetPath().GetText(), assetPath.c_str()));
     }
 
-    auto textureIs8Bit = [](std::string resolvedPath) {
+    auto _TextureIs8Bit = [](std::string resolvedPath) {
 
         std::string extension = ArGetResolver().GetExtension(resolvedPath);
         extension = TfStringToLower(extension);
@@ -667,17 +669,17 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
         return eightBitExtensions.find(extension) != eightBitExtensions.end();
     };
 
-    if (!textureIs8Bit(textureAssetPath.GetResolvedPath())) {
+    if (!_TextureIs8Bit(textureAssetPath.GetResolvedPath())) {
         // Nothing more is required for image depths > 8 bits, which
         // we assume FOR NOW, are floating point
         return errors;
     }
 
     TfToken colorSpace;
-    TfToken rawColorSpace("raw");
+    const TfToken Raw("raw");
     bool valueForColorSpaceExists =
-        getInputValue(sourceShader, TfToken("sourceColorSpace"), colorSpace);
-    if (!valueForColorSpaceExists || colorSpace != rawColorSpace) {
+        _GetInputValue(sourceShader, TfToken("sourceColorSpace"), &colorSpace);
+    if (!valueForColorSpaceExists || colorSpace != Raw) {
         errors.emplace_back(
             UsdShadeValidationErrorNameTokens->invalidSourceColorSpace,
             UsdValidationErrorType::Error,
@@ -692,13 +694,15 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
                            textureAssetPath.GetAssetPath().c_str()));
     }
 
-    GfVec4f bias;
-    bool valueForBiasExists = getInputValue(sourceShader, TfToken("bias"),
-        bias);
+    GfVec4f biasVector;
+    const TfToken Bias("bias");
+    bool valueForBiasExists = _GetInputValue(sourceShader, Bias,
+        &biasVector);
 
-    GfVec4f scale;
-    bool valueForScaleExists = getInputValue(sourceShader, TfToken("scale"),
-        scale);
+    GfVec4f scaleVector;
+    const TfToken Scale("scale");
+    bool valueForScaleExists = _GetInputValue(sourceShader, Scale,
+        &scaleVector);
 
     if (!(valueForBiasExists && valueForScaleExists))
     {
@@ -724,8 +728,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
     // guidelines, as some authoring tools may rely on this to scale an
     // effect of normal perturbations.
     // don't really care about fourth components...
-    bool nonCompliantScaleValues = scale[0] != 2 ||
-        scale[1] != 2 || scale[2] != 2;
+    bool nonCompliantScaleValues = scaleVector[0] != 2 ||
+        scaleVector[1] != 2 || scaleVector[2] != 2;
 
     if (nonCompliantScaleValues)
     {
@@ -744,7 +748,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
                            "space of [(-1,-1,-1), (1,1,1)] as documented in "
                            "the UsdPreviewSurface and UsdUVTexture docs.",
                            sourcePrim.GetPath().GetText(),
-                           scale[0], scale[1], scale[2], scale[3])
+                           scaleVector[0], scaleVector[1], scaleVector[2],
+                           scaleVector[3])
         );
     }
 
@@ -754,8 +759,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
     // in the UsdPreviewSurface docs. Note this is true only when scale
     // values are respecting the requirements laid in the
     // UsdPreviewSurface / UsdUVTexture docs. We continue to warn!
-    if (!nonCompliantScaleValues && (bias[0] != -1 || bias[1] != -1 ||
-        bias[2] != -1))
+    if (!nonCompliantScaleValues && (biasVector[0] != -1 ||
+        biasVector[1] != -1 || biasVector[2] != -1))
     {
         errors.emplace_back(
             UsdShadeValidationErrorNameTokens->nonCompliantBias,
@@ -772,7 +777,8 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
                             "space of [(-1,-1,-1), (1,1,1)] as documented in "
                             "the UsdPreviewSurface and UsdUVTexture docs.",
                             sourcePrim.GetPath().GetText(),
-                            bias[0], bias[1], bias[2], bias[3])
+                            biasVector[0], biasVector[1], biasVector[2],
+                            biasVector[3])
         );
     }
 
