@@ -2096,10 +2096,10 @@ subgroup.add_argument("--no-usdview", dest="build_usdview",
 subgroup = group.add_mutually_exclusive_group()
 subgroup.add_argument("--zlib", dest="build_zlib",
                       action="store_true", default=True,
-                      help="Install zlib on behalf of dependencies")
+                      help="Install zlib on behalf of dependencies (default)")
 subgroup.add_argument("--no-zlib", dest="build_zlib",
                       action="store_false",
-                      help="Do not install zlib for dependencies (default)")
+                      help="Do not install zlib for dependencies")
 
 group = parser.add_argument_group(title="Imaging Plugin Options")
 subgroup = group.add_mutually_exclusive_group()
@@ -2412,18 +2412,18 @@ if context.buildMaterialX:
 
 if context.buildImaging:
     if context.enablePtex:
-        requiredDependencies += [PTEX, ZLIB]
+        requiredDependencies += [ZLIB, PTEX]
 
     requiredDependencies += [OPENSUBDIV]
 
     if context.enableOpenVDB:
-        requiredDependencies += [BLOSC, BOOST, OPENEXR, OPENVDB, TBB, ZLIB]
+        requiredDependencies += [ZLIB, TBB, BLOSC, BOOST, OPENEXR, OPENVDB]
     
     if context.buildOIIO:
-        requiredDependencies += [BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO, ZLIB]
+        requiredDependencies += [ZLIB, BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO]
 
     if context.buildOCIO:
-        requiredDependencies += [OPENCOLORIO, ZLIB]
+        requiredDependencies += [ZLIB, OPENCOLORIO]
 
     if context.buildEmbree:
         requiredDependencies += [TBB, EMBREE]
