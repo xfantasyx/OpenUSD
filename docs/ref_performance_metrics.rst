@@ -125,10 +125,14 @@ Standard Shader Ball
 This asset is designed to be a comprehensive test of a broad array of material 
 properties in a single render. Geometry is expressed using USD, materials are 
 defined using MaterialX, texture maps are provided in OpenEXR format and encoded 
-using the Academy Color Encoding System ACEScg color space. 
+using the Academy Color Encoding System ACEScg color space.
 
-.. image:: https://raw.githubusercontent.com/usd-wg/assets/main/full_assets/StandardShaderBall/media/figure02.png
-    :width: 500
+In our performance sweep we use the ``mtlx_bubblegum`` material. Note the
+image below may not exactly match the image generated during the performance
+run; the primary intention is not necessarily to exercise specific renderers.
+
+.. image:: https://raw.githubusercontent.com/usd-wg/assets/main/full_assets/StandardShaderBall/media/example_materials/mtlx_bubblegum.jpg
+    :width: 300
 
 The shader ball asset can be `downloaded here <https://github.com/usd-wg/assets/tree/main/full_assets/StandardShaderBall>`__.
 
