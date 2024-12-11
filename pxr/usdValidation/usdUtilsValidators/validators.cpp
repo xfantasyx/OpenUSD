@@ -103,7 +103,7 @@ static UsdValidationErrorVector
 _FileExtensionValidator(const UsdStagePtr& usdStage) {
     UsdValidationErrorVector errors;
 
-    const std::vector<TfToken> validExtensions = {TfToken("usda"),
+    const std::set<TfToken> validExtensions = {TfToken("usda"),
         TfToken("usdc"), TfToken("usd"), TfToken("usdz"), TfToken("png"),
         TfToken("jpg"), TfToken("jpeg"), TfToken("exr")};
 
