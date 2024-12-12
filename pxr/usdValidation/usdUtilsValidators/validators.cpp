@@ -89,8 +89,8 @@ _PackageEncapsulationValidator(const UsdStagePtr &usdStage)
                     UsdValidationErrorSites {
                         UsdValidationErrorSite(rootLayer, SdfPath(asset)) },
                     TfStringPrintf(
-                        ("Found asset reference '%s' that does not belong to "
-                         "the package '%s'."),
+                        "Found asset reference '%s' that does not belong to "
+                         "the package '%s'.",
                         asset.c_str(), packagePath.c_str()));
             }
         }
@@ -148,12 +148,12 @@ static UsdValidationErrorVector
 _CompressionValidator(const UsdStagePtr& usdStage) {
     const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
     const UsdZipFile zipFile = UsdZipFile::Open(rootLayer->GetRealPath().c_str());
-
-    std::string packagePath = ArSplitPackageRelativePathOuter(rootLayer->GetIdentifier()).first;
     if (!zipFile)
     {
         return {};
     }
+
+    std::string packagePath = ArSplitPackageRelativePathOuter(rootLayer->GetIdentifier()).first;
 
     UsdValidationErrorVector errors;
     for(auto it = zipFile.begin(); it != zipFile.end(); ++it)
@@ -170,9 +170,9 @@ _CompressionValidator(const UsdStagePtr& usdStage) {
                             rootLayer, SdfPath(fileName))
                 },
                 TfStringPrintf(
-                ("File '%s' in package '%s' has "
+                "File '%s' in package '%s' has "
                 "compression. Compression method is '%u', actual size "
-                "is %lu. Uncompressed size is %lu."),
+                "is %lu. Uncompressed size is %lu.",
                     fileName.c_str(), packagePath.c_str(),
                     fileInfo.compressionMethod,
                     fileInfo.size, fileInfo.uncompressedSize)
