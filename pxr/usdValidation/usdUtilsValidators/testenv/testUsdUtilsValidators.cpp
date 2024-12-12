@@ -8,6 +8,7 @@
 #include "pxr/base/arch/systemInfo.h"
 #include "pxr/base/tf/pathUtils.h"
 #include "pxr/usd/usdGeom/xform.h"
+#include "pxr/usd/usd/variantSets.h"
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
@@ -213,9 +214,36 @@ TestMissingReferenceValidator()
         ValidateError(errors[0], expectedErrorMessage,
                 expectedIdentifier);
     }
+
+    xform.GetPrim().GetReferences().RemoveReference(badAssetReference);
+    // Set an unresolved dependency on an unused variant
+
+    UsdVariantSets variantSets = xform.GetPrim().GetVariantSets();
+    UsdVariantSet colorsVariantSet = variantSets.AddVariantSet("myVariant");
+
+    UsdGeomXform selectedXform = UsdGeomXform::Define(stage, xform.GetPath().AppendChild(TfToken("selected")));
+    UsdGeomXform notSelectedXform = UsdGeomXform::Define(stage, xform.GetPath().AppendChild(TfToken("notSelected")));
+    const SdfReference badAssetOnVariantReference("doesNotExistOnVariant.jpg");
+    notSelectedXform.GetPrim().GetReferences().AddReference(badAssetOnVariantReference);
+
+    // Validate an error occurs on a missing asset reference
+    {
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+
+        // Verify both the layer errors are present
+        const std::string expectedErrorMessage = "Found unresolvable external "
+                                                 "dependency 'doesNotExistOnVariant.jpg'.";
+        const TfToken expectedIdentifier =
+            TfToken(
+            "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
+        TF_AXIOM(errors.size() == 1);
+
+        ValidateError(errors[0], expectedErrorMessage,
+                expectedIdentifier);
+    }
     
     // Remove the nonexistent asset reference, add an existing reference
-    xform.GetPrim().GetReferences().RemoveReference(badAssetReference);
+    notSelectedXform.GetPrim().GetReferences().RemoveReference(badAssetOnVariantReference);
     xform.GetPrim().GetReferences().AddReference("pass.usdz");
 
     const UsdValidationErrorVector errors = validator->Validate(stage);
