@@ -764,7 +764,7 @@ _NormalMapTextureValidator(const UsdPrim& usdPrim) {
     {
         errors.emplace_back(
             UsdShadeValidationErrorNameTokens->nonCompliantBias,
-            UsdValidationErrorType::Error,
+            UsdValidationErrorType::Warn,
             UsdValidationErrorSites{
                 UsdValidationErrorSite(usdPrim.GetStage(),
                     sourcePrim.GetPath())

@@ -636,7 +636,8 @@ TestUsdShadeNormalMapTextureValidator()
         ValidatePrimError(errors[0],
             expectedErrorIdentifier,
             usdUvTextureShader.GetPath(),
-            expectedErrorMsg);
+            expectedErrorMsg,
+            UsdValidationErrorType::Warn);
     }
 
     // Update to a compliant bias and a non-compliant scale value.
