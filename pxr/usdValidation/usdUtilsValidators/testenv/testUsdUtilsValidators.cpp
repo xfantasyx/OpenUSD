@@ -30,7 +30,7 @@ TestUsdUsdzValidators()
     UsdValidationValidatorMetadataVector metadata
         = registry.GetValidatorMetadataForPlugin(
             _tokens->usdUtilsValidatorsPlugin);
-    TF_AXIOM(metadata.size() == 1);
+    TF_AXIOM(metadata.size() == 2);
     // Since other validators can be registered with a UsdUtilsValidators
     // keyword, our validators registered in usd are a subset of the entire
     // set.
@@ -40,9 +40,25 @@ TestUsdUsdzValidators()
     }
 
     const std::set<TfToken> expectedValidatorNames
-        = { UsdUtilsValidatorNameTokens->packageEncapsulationValidator };
+        = { UsdUtilsValidatorNameTokens->packageEncapsulationValidator,
+            UsdUtilsValidatorNameTokens->fileExtensionValidator };
 
     TF_AXIOM(validatorMetadataNameSet == expectedValidatorNames);
+}
+
+
+void ValidateError(const UsdValidationError &error,
+        const std::string& expectedErrorMsg,
+        const TfToken& expectedErrorIdentifier,
+        UsdValidationErrorType expectedErrorType =
+        UsdValidationErrorType::Error)
+{
+    TF_AXIOM(error.GetIdentifier() == expectedErrorIdentifier);
+    TF_AXIOM(error.GetType() == expectedErrorType);
+    TF_AXIOM(error.GetSites().size() == 1u);
+    const UsdValidationErrorSite &errorSite = error.GetSites()[0];
+    TF_AXIOM(!errorSite.GetLayer().IsInvalid());
+    TF_AXIOM(error.GetMessage() == expectedErrorMsg);
 }
 
 static void
@@ -60,56 +76,87 @@ TestPackageEncapsulationValidator()
     // that are not included in the package, but exist
     const UsdStageRefPtr &stage = UsdStage::Open("fail.usdz");
 
-    UsdValidationErrorVector errors = validator->Validate(stage);
+    {
+        const UsdValidationErrorVector errors = validator->Validate(stage);
 
-    // Verify both the layer & asset errors are present
-    TF_AXIOM(errors.size() == 2);
+        // Verify both the layer & asset errors are present
+        TF_AXIOM(errors.size() == 2u);
 
-    // Note that we keep the referenced layer in normalized path to represent
-    // the layer identifier, whereas the asset path is platform specific path,
-    // as returned by UsdUtilsComputeAllDependencies
-    const SdfLayerRefPtr &rootLayer = stage->GetRootLayer();
-    const std::string &rootLayerIdentifier = rootLayer->GetIdentifier();
-    const std::string realUsdzPath = rootLayer->GetRealPath();
-    const std::string errorLayer
-        = TfStringCatPaths(TfGetPathName(TfAbsPath(rootLayerIdentifier)),
-                           "excludedDirectory/layer.usda");
+        // Note that we keep the referenced layer in normalized path to represent
+        // the layer identifier, whereas the asset path is platform specific path,
+        // as returned by UsdUtilsComputeAllDependencies
+        const SdfLayerRefPtr &rootLayer = stage->GetRootLayer();
+        const std::string &rootLayerIdentifier = rootLayer->GetIdentifier();
+        const std::string realUsdzPath = rootLayer->GetRealPath();
+        const std::string errorLayer
+            = TfStringCatPaths(TfGetPathName(TfAbsPath(rootLayerIdentifier)),
+                               "excludedDirectory/layer.usda");
 
-    std::filesystem::path parentDir
-        = std::filesystem::path(realUsdzPath).parent_path();
-    const std::string errorAsset
-        = (parentDir / "excludedDirectory" / "image.jpg").string();
+        std::filesystem::path parentDir
+            = std::filesystem::path(realUsdzPath).parent_path();
+        const std::string errorAsset
+            = (parentDir / "excludedDirectory" / "image.jpg").string();
 
-    std::array<std::string, 2> expectedErrorMessages
-        = { TfStringPrintf(("Found referenced layer '%s' that does not "
-                            "belong to the package '%s'."),
-                           errorLayer.c_str(), realUsdzPath.c_str()),
-            TfStringPrintf(("Found asset reference '%s' that does not belong"
-                            " to the package '%s'."),
-                           errorAsset.c_str(), realUsdzPath.c_str()) };
+        std::array<std::string, 2> expectedErrorMessages
+            = { TfStringPrintf(("Found referenced layer '%s' that does not "
+                                "belong to the package '%s'."),
+                               errorLayer.c_str(), realUsdzPath.c_str()),
+                TfStringPrintf(("Found asset reference '%s' that does not belong"
+                                " to the package '%s'."),
+                               errorAsset.c_str(), realUsdzPath.c_str()) };
 
-    std::array<TfToken, 2> expectedErrorIdentifiers = {
-        TfToken(
-            "usdUtilsValidators:PackageEncapsulationValidator.LayerNotInPackage"),
-        TfToken(
-            "usdUtilsValidators:PackageEncapsulationValidator.AssetNotInPackage")
-    };
+        std::array<TfToken, 2> expectedErrorIdentifiers = {
+            TfToken(
+                "usdUtilsValidators:PackageEncapsulationValidator.LayerNotInPackage"),
+            TfToken(
+                "usdUtilsValidators:PackageEncapsulationValidator.AssetNotInPackage")
+        };
 
-    for (size_t i = 0; i < errors.size(); ++i) {
-        TF_AXIOM(errors[i].GetIdentifier() == expectedErrorIdentifiers[i]);
-        TF_AXIOM(errors[i].GetType() == UsdValidationErrorType::Warn);
-        TF_AXIOM(errors[i].GetSites().size() == 1);
-        TF_AXIOM(!errors[i].GetSites()[0].GetLayer().IsInvalid());
-        TF_AXIOM(errors[i].GetMessage() == expectedErrorMessages[i]);
+        for (size_t i = 0; i < errors.size(); ++i) {
+            ValidateError(errors[i], expectedErrorMessages[i],
+                expectedErrorIdentifiers[i], UsdValidationErrorType::Warn);
+        }
     }
 
     // Load the pre-created usdz stage with relative paths to both a reference
     // and an asset that are included in the package.
     const UsdStageRefPtr &passStage = UsdStage::Open("pass.usdz");
+    {
+        const UsdValidationErrorVector errors = validator->Validate(passStage);
+
+        // Verify the errors are gone
+        TF_AXIOM(errors.empty());
+    }
+}
+
+static void
+TestFileExtensionValidator()
+{
+    UsdValidationRegistry& registry = UsdValidationRegistry::GetInstance();
+
+    // Verify the validator exists
+    const UsdValidationValidator *validator = registry.GetOrLoadValidatorByName(
+            UsdUtilsValidatorNameTokens->fileExtensionValidator);
+
+    TF_AXIOM(validator);
+
+    const UsdStageRefPtr& stage = UsdStage::Open("failFileExtension.usdz");
+    UsdValidationErrorVector errors = validator->Validate(stage);
+    TF_AXIOM(errors.size() == 1u);
+    const std::string expectedErrorMsg =
+        "File 'cube.invalid' in package 'failFileExtension.usdz' has an "
+        "unknown unsupported extension 'invalid'.";
+    const TfToken expectedErrorIdentifier(
+    "usdUtilsValidators:FileExtensionValidator.UnsupportedFileExtensionInPackage");
+    // Verify error occurs.
+    ValidateError(errors[0], expectedErrorMsg, expectedErrorIdentifier);
+
+    // Load a passing stage
+    const UsdStageRefPtr& passStage = UsdStage::Open("allSupportedFiles.usdz");
 
     errors = validator->Validate(passStage);
 
-    // Verify the errors are gone
+    // Verify no errors occur with all valid extensions included
     TF_AXIOM(errors.empty());
 }
 
@@ -118,6 +165,7 @@ main()
 {
     TestUsdUsdzValidators();
     TestPackageEncapsulationValidator();
+    TestFileExtensionValidator();
 
     return EXIT_SUCCESS;
 }
