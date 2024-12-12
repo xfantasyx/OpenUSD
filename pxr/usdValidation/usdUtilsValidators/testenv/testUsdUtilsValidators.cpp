@@ -48,19 +48,18 @@ TestUsdUsdzValidators()
     TF_AXIOM(validatorMetadataNameSet == expectedValidatorNames);
 }
 
-
 void ValidateError(const UsdValidationError &error,
         const std::string& expectedErrorMsg,
         const TfToken& expectedErrorIdentifier,
         UsdValidationErrorType expectedErrorType =
         UsdValidationErrorType::Error)
 {
+    TF_AXIOM(error.GetMessage() == expectedErrorMsg);
     TF_AXIOM(error.GetIdentifier() == expectedErrorIdentifier);
     TF_AXIOM(error.GetType() == expectedErrorType);
     TF_AXIOM(error.GetSites().size() == 1u);
     const UsdValidationErrorSite &errorSite = error.GetSites()[0];
     TF_AXIOM(!errorSite.GetLayer().IsInvalid());
-    TF_AXIOM(error.GetMessage() == expectedErrorMsg);
 }
 
 static void
@@ -173,32 +172,53 @@ TestMissingReferenceValidator()
 
     TF_AXIOM(validator);
 
-    // Create stage with a reference that does not exist
     const UsdStageRefPtr& stage = UsdStage::CreateInMemory();
 
     const UsdGeomXform xform = UsdGeomXform::Define(stage, SdfPath("/Xform"));
-    const SdfReference badReference("doesNotExist.usd");
-    xform.GetPrim().GetReferences().AddReference(badReference);
+    const SdfReference badLayerReference("doesNotExist.usd");
+    xform.GetPrim().GetReferences().AddReference(badLayerReference);
 
-    UsdValidationErrorVector errors = validator->Validate(stage);
+    // Validate an error occurs on a missing layer reference
+    {
+        const UsdValidationErrorVector errors = validator->Validate(stage);
 
-    // Verify both the layer & asset errors are present
-    const TfToken expectedIdentifier =
-        TfToken(
-        "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
-    TF_AXIOM(errors.size() == 1);
-    TF_AXIOM(errors[0].GetIdentifier() == expectedIdentifier);
-    TF_AXIOM(errors[0].GetType() == UsdValidationErrorType::Error);
-    TF_AXIOM(errors[0].GetSites().size() == 1);
-    TF_AXIOM(!errors[0].GetSites()[0].GetLayer().IsInvalid());
-    const std::string expectedErrorMessage = "Found unresolvable external "
-                                             "dependency 'doesNotExist.usd'.";
-    TF_AXIOM(errors[0].GetMessage() == expectedErrorMessage);
+        // Verify both the layer errors are present
+        const std::string expectedErrorMessage = "Found unresolvable external "
+                                                 "dependency 'doesNotExist.usd'.";
+        const TfToken expectedIdentifier =
+            TfToken(
+            "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
+        TF_AXIOM(errors.size() == 1);
 
-    // Remove the nonexistent reference, add an existing reference
-    xform.GetPrim().GetReferences().RemoveReference(badReference);
+        ValidateError(errors[0], expectedErrorMessage,
+                expectedIdentifier);
+    }
+
+    xform.GetPrim().GetReferences().RemoveReference(badLayerReference);
+    const SdfReference badAssetReference("doesNotExist.jpg");
+    xform.GetPrim().GetReferences().AddReference(badAssetReference);
+
+    // Validate an error occurs on a missing asset reference
+    {
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+
+        // Verify both the layer errors are present
+        const std::string expectedErrorMessage = "Found unresolvable external "
+                                                 "dependency 'doesNotExist.jpg'.";
+        const TfToken expectedIdentifier =
+            TfToken(
+            "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
+        TF_AXIOM(errors.size() == 1);
+
+        ValidateError(errors[0], expectedErrorMessage,
+                expectedIdentifier);
+    }
+    
+    // Remove the nonexistent asset reference, add an existing reference
+    xform.GetPrim().GetReferences().RemoveReference(badAssetReference);
     xform.GetPrim().GetReferences().AddReference("pass.usdz");
-    errors = validator->Validate(stage);
+
+    const UsdValidationErrorVector errors = validator->Validate(stage);
 
     // Verify the errors are gone
     TF_AXIOM(errors.empty());
