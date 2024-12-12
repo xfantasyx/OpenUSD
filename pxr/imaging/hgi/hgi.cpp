@@ -102,6 +102,13 @@ _MakeNewPlatformDefaultHgi()
         return nullptr;
     }
 
+    if (!instance->IsBackendSupported()) {
+        TF_DEBUG(HGI_DEBUG_INSTANCE_CREATION).Msg("Hgi %s is not supported\n",
+            hgiType);
+        delete instance;
+        return nullptr;
+    }
+
     TF_DEBUG(HGI_DEBUG_INSTANCE_CREATION).Msg("Successfully created platform "
         "default Hgi %s\n", hgiType);
 
@@ -168,6 +175,13 @@ _MakeNamedHgi(const TfToken& hgiToken)
     if (!instance) {
         TF_CODING_ERROR("[PluginLoad] Cannot construct instance of type '%s'\n",
             plugType.GetTypeName().c_str());
+        return nullptr;
+    }
+
+    if (!instance->IsBackendSupported()) {
+        TF_DEBUG(HGI_DEBUG_INSTANCE_CREATION).Msg("Hgi %s is not supported\n",
+            hgiType.c_str());
+        delete instance;
         return nullptr;
     }
 
