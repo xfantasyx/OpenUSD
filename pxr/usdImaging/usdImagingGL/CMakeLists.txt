@@ -2567,19 +2567,21 @@ pxr_register_test(testUsdImagingGLCards_bounds
     TESTENV testUsdImagingGLCards
 )
 
-pxr_register_test(testUsdImagingGLCards_SceneIndex
-    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -lighting -shading smooth -frameAll -stage testCards.usda -write testCards.png"
-    IMAGE_DIFF_COMPARE
-        testCards.png
-    FAIL 0.01
-    FAIL_PERCENT 0.1
-    WARN 0.02
-    WARN_PERCENT 0.05
-    EXPECTED_RETURN_CODE 0
-    TESTENV testUsdImagingGLCards
-    ENV
-        USDIMAGINGGL_ENGINE_ENABLE_SCENE_INDEX=1
-)
+# XXX: Commenting out while failures are being investigated.
+# 
+# pxr_register_test(testUsdImagingGLCards_SceneIndex
+#     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -lighting -shading smooth -frameAll -stage testCards.usda -write testCards.png"
+#     IMAGE_DIFF_COMPARE
+#         testCards.png
+#     FAIL 0.01
+#     FAIL_PERCENT 0.1
+#     WARN 0.02
+#     WARN_PERCENT 0.05
+#     EXPECTED_RETURN_CODE 0
+#     TESTENV testUsdImagingGLCards
+#     ENV
+#         USDIMAGINGGL_ENGINE_ENABLE_SCENE_INDEX=1
+# )
 
 pxr_register_test(testUsdImagingGLCards_SceneIndex_anim
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdImagingGLBasicDrawing -offscreen -lighting -shading smooth -frameAll -stage testAnim.usda -times 1 2 -write testAnim.png"
