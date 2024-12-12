@@ -47,6 +47,9 @@ class UserDocConstants(ConstantsGroup):
     USERDOC_FULL = "userDoc"
     USERDOC_BRIEF = "userDocBrief"
 
+def _FormatString(phrase):
+    return phrase.replace('"', r'\"')
+
 def _IsNSPrefixConnectableAPICompliant(nsPrefix):
     return (nsPrefix == UsdShade.Tokens.inputs[:1] or \
             nsPrefix == UsdShade.Tokens.outputs[:1])
@@ -126,13 +129,13 @@ def _CreateAttrSpecFromNodeAttribute(primSpec, prop, primDefForAttrPruning,
             attrSpec.hidden = True
 
     if prop.GetHelp():
-        _SetSchemaUserDocFields(attrSpec, prop.GetHelp())
+        _SetSchemaUserDocFields(attrSpec, _FormatString(prop.GetHelp()))
     elif prop.GetLabel(): # fallback documentation can be label
-        _SetSchemaUserDocFields(attrSpec, prop.GetLabel())
+        _SetSchemaUserDocFields(attrSpec, _FormatString(prop.GetLabel()))
     if prop.GetPage():
-        attrSpec.displayGroup = prop.GetPage()
+        attrSpec.displayGroup = _FormatString(prop.GetPage())
     if prop.GetLabel():
-        attrSpec.displayName = prop.GetLabel()
+        attrSpec.displayName = _FormatString(prop.GetLabel())
     if options and attrType == Sdf.ValueTypeNames.Token:
         # If the value for token list is empty then use the name
         # If options list has a mix of empty and non-empty value thats an error.
@@ -158,7 +161,7 @@ def _CreateAttrSpecFromNodeAttribute(primSpec, prop, primDefForAttrPruning,
     defaultValue = prop.GetDefaultValueAsSdfType()
     if (attrType == Sdf.ValueTypeNames.String or
             attrType == Sdf.ValueTypeNames.Token) and defaultValue is not None:
-        attrSpec.default = defaultValue.replace('"', r'\"')
+        attrSpec.default = _FormatString(defaultValue)
     else:
         attrSpec.default = defaultValue
 
