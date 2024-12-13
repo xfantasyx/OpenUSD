@@ -145,8 +145,8 @@ _FileExtensionValidator(const UsdStagePtr& usdStage)
 }
 
 static UsdValidationErrorVector
-_CompressionValidator(const UsdStagePtr& usdStage) {
-    const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
+_GetUsdzPackageErrors(const SdfLayerHandle &rootLayer)
+{
     const UsdZipFile zipFile = UsdZipFile::Open(rootLayer->GetRealPath().c_str());
     if (!zipFile)
     {
@@ -178,6 +178,62 @@ _CompressionValidator(const UsdStagePtr& usdStage) {
                     fileInfo.size, fileInfo.uncompressedSize)
             );
         }
+
+        if (fileInfo.dataOffset % 64 != 0)
+        {
+            const std::string &fileName = *it;
+            errors.emplace_back(
+                UsdUtilsValidationErrorNameTokens->byteMisalignment,
+                UsdValidationErrorType::Error,
+                UsdValidationErrorSites {
+                    UsdValidationErrorSite(
+                            rootLayer, SdfPath(fileName))
+                },
+                TfStringPrintf(
+                "File '%s' in package '%s' has an "
+                        "invalid offset %zu.",
+                    fileName.c_str(), packagePath.c_str(),
+                    fileInfo.dataOffset)
+            );
+        }
+    }
+
+    return errors;
+}
+
+static UsdValidationErrorVector
+_RootPackageValidator(const UsdStagePtr& usdStage) {
+    const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
+    return _GetUsdzPackageErrors(rootLayer);
+}
+
+static UsdValidationErrorVector
+_UsdzPackageValidator(const UsdStagePtr& usdStage) {
+
+    SdfLayerRefPtrVector layers;
+    std::vector<std::basic_string<char>> assets, unresolvedPaths;
+    const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
+    const SdfAssetPath &path = SdfAssetPath(rootLayer->GetIdentifier());
+
+    UsdUtilsComputeAllDependencies(path, &layers, &assets, &unresolvedPaths,
+                                   nullptr);
+
+    const std::string &realPath = rootLayer->GetRealPath();
+    const std::string &packagePath
+        = ArIsPackageRelativePath(rootLayer->GetIdentifier())
+        ? ArSplitPackageRelativePathOuter(realPath).first
+        : realPath;
+
+    UsdValidationErrorVector errors;
+
+    if (!packagePath.empty())
+    {
+        for (const SdfLayerRefPtr &referencedLayer : layers)
+        {
+            UsdValidationErrorVector layerErrors = _GetUsdzPackageErrors(referencedLayer);
+            errors.insert(errors.end(), std::make_move_iterator(layerErrors.begin()),
+                std::make_move_iterator(layerErrors.end()));
+        }
     }
 
     return errors;
@@ -192,13 +248,12 @@ TF_REGISTRY_FUNCTION(UsdValidationRegistry)
         _PackageEncapsulationValidator);
 
     registry.RegisterPluginValidator(
-        UsdUtilsValidatorNameTokens->fileExtensionValidator,
-    _FileExtensionValidator);
+            UsdUtilsValidatorNameTokens->rootPackageValidator,
+            _RootPackageValidator);
 
     registry.RegisterPluginValidator(
-        UsdUtilsValidatorNameTokens->compressionValidator,
-    _CompressionValidator);
-
+            UsdUtilsValidatorNameTokens->usdzPackageValidator,
+            _UsdzPackageValidator);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

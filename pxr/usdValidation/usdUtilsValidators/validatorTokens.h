@@ -21,7 +21,8 @@ PXR_NAMESPACE_OPEN_SCOPE
       "usdUtilsValidators:PackageEncapsulationValidator"))                     \
     ((fileExtensionValidator,                                                  \
       "usdUtilsValidators:FileExtensionValidator"))                            \
-    ((compressionValidator, "usdUtils:compressionValidator"))
+    ((rootPackageValidator, "usdUtilsValidators:RootPackageValidator"))        \
+    ((usdzPackageValidator, "usdUtilsValidators:UsdzPackageValidator"))        \
 
 #define USD_UTILS_VALIDATOR_KEYWORD_TOKENS                                     \
     (UsdUtilsValidators)                                                       \
@@ -33,7 +34,8 @@ PXR_NAMESPACE_OPEN_SCOPE
     ((invalidLayerInPackage, "InvalidLayerInPackage"))                         \
     ((unsupportedFileExtensionInPackage,                                       \
         "UnsupportedFileExtensionInPackage"))                                  \
-    ((compressionDetected, "CompressionDetected"))
+    ((compressionDetected, "CompressionDetected"))                             \
+    ((byteMisalignment, "ByteMisalignment"))                                   \
 
 ///\def
 /// Tokens representing validator names. Note that for plugin provided
