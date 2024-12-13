@@ -30,7 +30,7 @@ TestUsdUsdzValidators()
     UsdValidationValidatorMetadataVector metadata
         = registry.GetValidatorMetadataForPlugin(
             _tokens->usdUtilsValidatorsPlugin);
-    TF_AXIOM(metadata.size() == 2);
+    TF_AXIOM(metadata.size() == 4);
     // Since other validators can be registered with a UsdUtilsValidators
     // keyword, our validators registered in usd are a subset of the entire
     // set.
@@ -41,7 +41,9 @@ TestUsdUsdzValidators()
 
     const std::set<TfToken> expectedValidatorNames
         = { UsdUtilsValidatorNameTokens->packageEncapsulationValidator,
-            UsdUtilsValidatorNameTokens->fileExtensionValidator };
+            UsdUtilsValidatorNameTokens->fileExtensionValidator,
+            UsdUtilsValidatorNameTokens->rootPackageValidator,
+            UsdUtilsValidatorNameTokens->usdzPackageValidator };
 
     TF_AXIOM(validatorMetadataNameSet == expectedValidatorNames);
 }
@@ -59,6 +61,21 @@ void ValidateError(const UsdValidationError &error,
     const UsdValidationErrorSite &errorSite = error.GetSites()[0];
     TF_AXIOM(!errorSite.GetLayer().IsInvalid());
     TF_AXIOM(error.GetMessage() == expectedErrorMsg);
+}
+
+static void
+ValidateError(const UsdValidationError &error,
+    const std::string &expectedErrorMessage,
+    const TfToken &expectedIdentifier,
+    const UsdValidationErrorType &expectedErrorType =
+    UsdValidationErrorType::Error)
+{
+    TF_AXIOM(error.GetMessage() == expectedErrorMessage);
+    auto errorIdentifier = error.GetIdentifier().GetText();
+    TF_AXIOM(error.GetIdentifier() == expectedIdentifier);
+    TF_AXIOM(error.GetType() == expectedErrorType);
+    TF_AXIOM(error.GetSites().size() == 1);
+    TF_AXIOM(!error.GetSites()[0].GetLayer().IsInvalid());
 }
 
 static void
@@ -160,12 +177,67 @@ TestFileExtensionValidator()
     TF_AXIOM(errors.empty());
 }
 
+static void
+TestRootPackageValidator()
+{
+    UsdValidationRegistry &registry = UsdValidationRegistry::GetInstance();
+
+    // Verify the validator exists
+    const UsdValidationValidator *validator = registry.GetOrLoadValidatorByName(
+        UsdUtilsValidatorNameTokens->rootPackageValidator);
+
+    TF_AXIOM(validator);
+
+    // Load the pre-created usdz stage with a compressed file in the root layer
+    {
+        const UsdStageRefPtr &stage =
+            UsdStage::Open("packageWithCompressionAndByteAlignmentErrors.usdz");
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+
+        // Verify compression error occurs
+        TF_AXIOM(errors.size() == 3);
+
+        const std::vector<std::string> expectedErrorMessages = {
+            "File 'test.usda' in package "
+            "'packageWithCompressionAndByteAlignmentErrors.usdz' has an "
+            "invalid offset 39.",
+            "File 'texture.jpg' in package "
+            "'packageWithCompressionAndByteAlignmentErrors.usdz' has "
+            "compression. Compression method is '8', actual size is 14. "
+            "Uncompressed size is 1028.",
+            "File 'texture.jpg' in package "
+            "'packageWithCompressionAndByteAlignmentErrors.usdz' has an "
+            "invalid offset 131."};
+        const std::vector<TfToken> expectedErrorTokens = {
+            TfToken("usdUtilsValidators:RootPackageValidator.ByteMisalignment"),
+            TfToken("usdUtilsValidators:RootPackageValidator.CompressionDetected"),
+            TfToken("usdUtilsValidators:RootPackageValidator.ByteMisalignment")};
+
+        for (size_t i = 0; i < errors.size(); ++i)
+        {
+            ValidateError(errors[i], expectedErrorMessages[i],
+                expectedErrorTokens[i]);
+        }
+    }
+
+    // Load the pre-created usdz stage with valid files
+    {
+        const UsdStageRefPtr &stage =
+            UsdStage::Open("pass.usdz");
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+
+        // Verify there are no errors
+        TF_AXIOM(errors.empty());
+    }
+}
+
 int
 main()
 {
     TestUsdUsdzValidators();
     TestPackageEncapsulationValidator();
     TestFileExtensionValidator();
+    TestRootPackageValidator();
 
     return EXIT_SUCCESS;
 }
