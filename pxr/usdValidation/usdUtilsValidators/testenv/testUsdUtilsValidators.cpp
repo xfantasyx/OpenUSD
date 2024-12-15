@@ -71,7 +71,6 @@ ValidateError(const UsdValidationError &error,
     UsdValidationErrorType::Error)
 {
     TF_AXIOM(error.GetMessage() == expectedErrorMessage);
-    auto errorIdentifier = error.GetIdentifier().GetText();
     TF_AXIOM(error.GetIdentifier() == expectedIdentifier);
     TF_AXIOM(error.GetType() == expectedErrorType);
     TF_AXIOM(error.GetSites().size() == 1);
@@ -231,6 +230,63 @@ TestRootPackageValidator()
     }
 }
 
+static void
+TestUsdzPackageValidator()
+{
+    UsdValidationRegistry &registry = UsdValidationRegistry::GetInstance();
+
+    // Verify the validator exists
+    const UsdValidationValidator *validator = registry.GetOrLoadValidatorByName(
+        UsdUtilsValidatorNameTokens->usdzPackageValidator);
+
+    TF_AXIOM(validator);
+
+    // Load the pre-created usdz stage with a compressed file in the root layer
+    {
+        const UsdStageRefPtr &stage =
+            UsdStage::Open("sceneWithInvalidPackage.usda");
+
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+
+        // Verify internal compression and byte misalignment errors occur
+        TF_AXIOM(errors.size() == 3);
+
+        const std::string fullErrorPath = ArchGetCwd() +
+            "/packageWithCompressionAndByteAlignmentErrors.usdz";
+
+        const std::vector<std::string> expectedErrorMessages = {
+            TfStringPrintf("File 'test.usda' in package "
+            "'%s' has an "
+            "invalid offset 39.", fullErrorPath.c_str()),
+            TfStringPrintf("File 'texture.jpg' in package "
+            "'%s' has "
+            "compression. Compression method is '8', actual size is 14. "
+            "Uncompressed size is 1028.", fullErrorPath.c_str()),
+            TfStringPrintf("File 'texture.jpg' in package "
+            "'%s' has an "
+            "invalid offset 131.", fullErrorPath.c_str())
+        };
+
+        const std::vector<TfToken> expectedErrorTokens = {
+            TfToken("usdUtilsValidators:UsdzPackageValidator.ByteMisalignment"),
+            TfToken("usdUtilsValidators:UsdzPackageValidator.CompressionDetected"),
+            TfToken("usdUtilsValidators:UsdzPackageValidator.ByteMisalignment")};
+
+        for (size_t i = 0; i < errors.size(); ++i)
+        {
+            ValidateError(errors[i], expectedErrorMessages[i],
+                expectedErrorTokens[i]);
+        }
+    }
+
+    // Load the pre-created usda stage with a valid package.
+    {
+        const UsdStageRefPtr &stage = UsdStage::Open("sceneWithValidPackage.usda");
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+        TF_AXIOM(errors.empty());
+    }
+}
+
 int
 main()
 {
@@ -238,6 +294,7 @@ main()
     TestPackageEncapsulationValidator();
     TestFileExtensionValidator();
     TestRootPackageValidator();
+    TestUsdzPackageValidator();
 
     return EXIT_SUCCESS;
 }
