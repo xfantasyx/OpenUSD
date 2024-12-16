@@ -248,6 +248,10 @@ TF_REGISTRY_FUNCTION(UsdValidationRegistry)
         _PackageEncapsulationValidator);
 
     registry.RegisterPluginValidator(
+            UsdUtilsValidatorNameTokens->fileExtensionValidator,
+            _FileExtensionValidator);
+
+    registry.RegisterPluginValidator(
             UsdUtilsValidatorNameTokens->rootPackageValidator,
             _RootPackageValidator);
 

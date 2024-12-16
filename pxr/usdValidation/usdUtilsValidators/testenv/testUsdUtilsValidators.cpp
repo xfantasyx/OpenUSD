@@ -49,32 +49,18 @@ TestUsdUsdzValidators()
 }
 
 
-void ValidateError(const UsdValidationError &error,
+static void ValidateError(const UsdValidationError &error,
         const std::string& expectedErrorMsg,
         const TfToken& expectedErrorIdentifier,
         UsdValidationErrorType expectedErrorType =
         UsdValidationErrorType::Error)
 {
+    TF_AXIOM(error.GetMessage() == expectedErrorMsg);
     TF_AXIOM(error.GetIdentifier() == expectedErrorIdentifier);
     TF_AXIOM(error.GetType() == expectedErrorType);
     TF_AXIOM(error.GetSites().size() == 1u);
     const UsdValidationErrorSite &errorSite = error.GetSites()[0];
     TF_AXIOM(!errorSite.GetLayer().IsInvalid());
-    TF_AXIOM(error.GetMessage() == expectedErrorMsg);
-}
-
-static void
-ValidateError(const UsdValidationError &error,
-    const std::string &expectedErrorMessage,
-    const TfToken &expectedIdentifier,
-    const UsdValidationErrorType &expectedErrorType =
-    UsdValidationErrorType::Error)
-{
-    TF_AXIOM(error.GetMessage() == expectedErrorMessage);
-    TF_AXIOM(error.GetIdentifier() == expectedIdentifier);
-    TF_AXIOM(error.GetType() == expectedErrorType);
-    TF_AXIOM(error.GetSites().size() == 1);
-    TF_AXIOM(!error.GetSites()[0].GetLayer().IsInvalid());
 }
 
 static void
