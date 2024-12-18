@@ -287,6 +287,8 @@ struct HdxPickTaskContextParams
 class HdxPickTask : public HdTask
 {
 public:
+    using TaskParams = HdxPickTaskParams;
+
     HDX_API
     HdxPickTask(HdSceneDelegate* delegate, SdfPath const& id);
 

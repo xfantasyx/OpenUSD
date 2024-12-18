@@ -22,6 +22,8 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+struct HdxVisualizeAovTaskParams;
+
 /// \class HdxVisualizeAovTask
 ///
 /// A task for visualizing non-color AOVs such as depth, normals, primId.
@@ -43,6 +45,8 @@ PXR_NAMESPACE_OPEN_SCOPE
 class HdxVisualizeAovTask : public HdxTask
 {
 public:
+    using TaskParams = HdxVisualizeAovTaskParams;
+
     HDX_API
     HdxVisualizeAovTask(HdSceneDelegate* delegate, SdfPath const& id);
 

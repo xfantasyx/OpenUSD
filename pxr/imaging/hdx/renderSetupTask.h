@@ -52,6 +52,8 @@ class HdStRenderPassState;
 class HdxRenderSetupTask : public HdTask
 {
 public:
+    using TaskParams = HdxRenderTaskParams;
+
     HDX_API
     HdxRenderSetupTask(HdSceneDelegate* delegate, SdfPath const& id);
 
