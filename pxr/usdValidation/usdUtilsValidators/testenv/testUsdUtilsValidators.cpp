@@ -7,6 +7,7 @@
 
 #include "pxr/base/arch/systemInfo.h"
 #include "pxr/base/tf/pathUtils.h"
+#include "pxr/base/tf/stringUtils.h"
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
@@ -237,8 +238,8 @@ TestUsdzPackageValidator()
         // Verify internal compression and byte misalignment errors occur
         TF_AXIOM(errors.size() == 3);
 
-        const std::string fullErrorPath = ArchGetCwd() +
-            "/packageWithCompressionAndByteAlignmentErrors.usdz";
+        const std::string fullErrorPath = TfStringCatPaths(ArchGetCwd(),
+            "packageWithCompressionAndByteAlignmentErrors.usdz");
 
         const std::vector<std::string> expectedErrorMessages = {
             TfStringPrintf("File 'test.usda' in package "
