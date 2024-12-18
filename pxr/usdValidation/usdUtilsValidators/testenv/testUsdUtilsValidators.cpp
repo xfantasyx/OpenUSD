@@ -7,8 +7,9 @@
 
 #include "pxr/base/arch/systemInfo.h"
 #include "pxr/base/tf/pathUtils.h"
-#include "pxr/usd/usdGeom/xform.h"
+#include "pxr/usd/usd/editContext.h"
 #include "pxr/usd/usd/variantSets.h"
+#include "pxr/usd/usdShade/shader.h"
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
@@ -175,75 +176,84 @@ TestMissingReferenceValidator()
 
     const UsdStageRefPtr& stage = UsdStage::CreateInMemory();
 
-    const UsdGeomXform xform = UsdGeomXform::Define(stage, SdfPath("/Xform"));
+    const TfToken xformToken("Xform");
+    const UsdPrim xform = stage->DefinePrim(SdfPath("/Prim"), xformToken);
     const SdfReference badLayerReference("doesNotExist.usd");
-    xform.GetPrim().GetReferences().AddReference(badLayerReference);
+    xform.GetReferences().AddReference(badLayerReference);
 
-    // Validate an error occurs on a missing layer reference
+    // Validate an error occurs for a missing layer reference
     {
         const UsdValidationErrorVector errors = validator->Validate(stage);
-
-        // Verify both the layer errors are present
+        TF_AXIOM(errors.size() == 1);
         const std::string expectedErrorMessage = "Found unresolvable external "
                                                  "dependency 'doesNotExist.usd'.";
         const TfToken expectedIdentifier =
             TfToken(
             "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
-        TF_AXIOM(errors.size() == 1);
 
         ValidateError(errors[0], expectedErrorMessage,
                 expectedIdentifier);
     }
 
-    xform.GetPrim().GetReferences().RemoveReference(badLayerReference);
-    const SdfReference badAssetReference("doesNotExist.jpg");
-    xform.GetPrim().GetReferences().AddReference(badAssetReference);
+    // Remove the bad layer reference and add a shader prim for the next test
+    xform.GetReferences().RemoveReference(badLayerReference);
+    UsdShadeShader shader = UsdShadeShader::Define(stage,
+        SdfPath("/Prim/Shader"));
+    const TfToken notFoundAsset("notFoundAsset");
+    UsdShadeInput notFoundAssetInput = shader.CreateInput(
+        notFoundAsset, SdfValueTypeNames->Asset);
+    notFoundAssetInput.Set(SdfAssetPath("doesNotExist.jpg"));
 
-    // Validate an error occurs on a missing asset reference
+    // Validate an error occurs for a missing asset reference
     {
         const UsdValidationErrorVector errors = validator->Validate(stage);
-
-        // Verify both the layer errors are present
+        TF_AXIOM(errors.size() == 1);
         const std::string expectedErrorMessage = "Found unresolvable external "
-                                                 "dependency 'doesNotExist.jpg'.";
+            "dependency 'doesNotExist.jpg'.";
         const TfToken expectedIdentifier =
             TfToken(
             "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
-        TF_AXIOM(errors.size() == 1);
 
         ValidateError(errors[0], expectedErrorMessage,
                 expectedIdentifier);
     }
 
-    xform.GetPrim().GetReferences().RemoveReference(badAssetReference);
-    // Set an unresolved dependency on an unused variant
+    // Remove shader prim and add a variant set for the next test
+    stage->RemovePrim(shader.GetPath());
+    UsdVariantSets variantSets = xform.GetVariantSets();
+    UsdVariantSet testVariantSet = variantSets.AddVariantSet("testVariantSet");
 
-    UsdVariantSets variantSets = xform.GetPrim().GetVariantSets();
-    UsdVariantSet colorsVariantSet = variantSets.AddVariantSet("myVariant");
+    testVariantSet.AddVariant("invalid");
+    testVariantSet.AddVariant("valid");
 
-    UsdGeomXform selectedXform = UsdGeomXform::Define(stage, xform.GetPath().AppendChild(TfToken("selected")));
-    UsdGeomXform notSelectedXform = UsdGeomXform::Define(stage, xform.GetPath().AppendChild(TfToken("notSelected")));
-    const SdfReference badAssetOnVariantReference("doesNotExistOnVariant.jpg");
-    notSelectedXform.GetPrim().GetReferences().AddReference(badAssetOnVariantReference);
+    testVariantSet.SetVariantSelection("invalid");
 
-    // Validate an error occurs on a missing asset reference
+    {
+        UsdEditContext context(testVariantSet.GetVariantEditContext());
+        UsdShadeShader shader = UsdShadeShader::Define(stage, xform.GetPath().AppendChild(TfToken("Shader")));
+        UsdShadeInput invalidAssetInput = shader.CreateInput(
+            TfToken("invalidAsset"), SdfValueTypeNames->Asset);
+        invalidAssetInput.Set(SdfAssetPath("doesNotExistOnVariant.jpg"));
+    }
+    testVariantSet.SetVariantSelection("valid");
+
+    // Validate an error occurs on a nonexistent asset on an inactive variant
     {
         const UsdValidationErrorVector errors = validator->Validate(stage);
-
-        // Verify both the layer errors are present
+        TF_AXIOM(errors.size() == 1);
         const std::string expectedErrorMessage = "Found unresolvable external "
                                                  "dependency 'doesNotExistOnVariant.jpg'.";
         const TfToken expectedIdentifier =
             TfToken(
             "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
-        TF_AXIOM(errors.size() == 1);
 
         ValidateError(errors[0], expectedErrorMessage,
                 expectedIdentifier);
     }
-    
-    // Remove the nonexistent asset reference, add an existing reference
-    notSelectedXform.GetPrim().GetReferences().RemoveReference(badAssetOnVariantReference);
+
+    // Remove the variant set and add a valid reference
+    SdfPrimSpecHandle primSpec = stage->GetRootLayer()->GetPrimAtPath(xform.GetPath());
+    primSpec->RemoveVariantSet("testVariantSet");
     xform.GetPrim().GetReferences().AddReference("pass.usdz");
 
     const UsdValidationErrorVector errors = validator->Validate(stage);
