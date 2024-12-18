@@ -153,7 +153,7 @@ _GetUsdzPackageErrors(const SdfLayerHandle &rootLayer)
         return {};
     }
 
-    std::string packagePath = ArSplitPackageRelativePathOuter(rootLayer->GetIdentifier()).first;
+    const std::string packagePath = ArSplitPackageRelativePathOuter(rootLayer->GetIdentifier()).first;
 
     UsdValidationErrorVector errors;
     for(auto it = zipFile.begin(); it != zipFile.end(); ++it)
@@ -211,12 +211,10 @@ static UsdValidationErrorVector
 _UsdzPackageValidator(const UsdStagePtr& usdStage) {
 
     SdfLayerRefPtrVector layers;
-    std::vector<std::basic_string<char>> assets, unresolvedPaths;
     const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
     const SdfAssetPath &path = SdfAssetPath(rootLayer->GetIdentifier());
 
-    UsdUtilsComputeAllDependencies(path, &layers, &assets, &unresolvedPaths,
-                                   nullptr);
+    UsdUtilsComputeAllDependencies(path, &layers, nullptr, nullptr, nullptr);
 
     const std::string &realPath = rootLayer->GetRealPath();
     const std::string &packagePath
