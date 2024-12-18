@@ -58,6 +58,9 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+TF_DEFINE_ENV_SETTING(HD_PRMAN_ALL_LIGHTS_FIXED_SAMPLE_COUNT, -1,
+                      "Force all lights to use the given fixed sample count.");
+
 HdPrmanLight::HdPrmanLight(SdfPath const& id, TfToken const& lightType)
     : HdLight(id)
     , _hdLightType(lightType)
@@ -170,7 +173,7 @@ _AddLightFilterCombiner(std::vector<riley::ShadingNode>* lightFilterNodes)
     // Build a map of light filter handles grouped by mode.
     std::unordered_map<RtUString, std::vector<RtUString>> modeMap;
 
-    for (const auto& lightFilterNode : *lightFilterNodes) {       
+    for (const auto& lightFilterNode : *lightFilterNodes) {
         RtUString mode;
         lightFilterNode.params.GetString(combineMode, mode);
         if (mode.Empty()) {
@@ -213,7 +216,7 @@ _PopulateLightFilterNodes(
         maxFilters += 1;  // extra for the combiner filter
     }
     lightFilterNodes->reserve(maxFilters);
-    
+
     for (const auto& filterPath : lightFilterPaths) {
         TF_DEBUG(HDPRMAN_LIGHT_FILTER_LINKING)
             .Msg("HdPrman: Light <%s> filter \"%s\" path \"%s\"\n",
@@ -232,7 +235,7 @@ _PopulateLightFilterNodes(
 
         if (!_PopulateNodesFromMaterialResource(
                 sceneDelegate, filterPath,
-                HdMaterialTerminalTokens->lightFilter, 
+                HdMaterialTerminalTokens->lightFilter,
                 lightFilterNodes)) {
             continue;
         }
@@ -373,7 +376,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
     if (_hdLightType == HdPrimTypeTokens->meshLight) {
 #endif
         // Has source geom changed? Is the rprim still there?
-        const VtValue sourceGeom = sceneDelegate->GetLightParamValue(id, 
+        const VtValue sourceGeom = sceneDelegate->GetLightParamValue(id,
             HdPrmanTokens->sourceGeom);
         if (sourceGeom.IsHolding<SdfPath>()) {
             const auto& sourceGeomPath = sourceGeom.UncheckedGet<SdfPath>();
@@ -381,7 +384,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
                 // source geom path has changed; assume new prototype id
                 dirtySourceGeom = true;
             }
-            const HdRprim *rprim = 
+            const HdRprim *rprim =
                 sceneDelegate->GetRenderIndex().GetRprim(sourceGeomPath);
             if (rprim) {
 
@@ -421,7 +424,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
                 // check if the prototype id exists, or has changed
                 const auto* gprim =
                     dynamic_cast<const HdPrman_GprimBase*>(rprim);
-                std::vector<riley::GeometryPrototypeId> prototypeIds = 
+                std::vector<riley::GeometryPrototypeId> prototypeIds =
                     gprim->GetPrototypeIds();
                 if (prototypeIds.empty()) {
                     // XXX: This is our least-ugly workaround for sync ordering.
@@ -528,7 +531,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
         // instance (or instances, in the latter case) needs to be refreshed.
         dirtyLightInstance = true;
     }
-    
+
     if (*dirtyBits & (DirtyParams | DirtyShadowParams | DirtyCollection)) {
         // Light linking changes are subsumed under changes to the light api,
         // which are in turn signalled as :
@@ -625,6 +628,14 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
         // aren't direct inputs of the material resource.
         riley::ShadingNode& lightNode = lightNodes.back();
 
+        static const int forcedFixedSampleCount =
+            TfGetEnvSetting(HD_PRMAN_ALL_LIGHTS_FIXED_SAMPLE_COUNT);
+        if (forcedFixedSampleCount > -1) {
+            static const RtUString k_fixedSampleCount("fixedSampleCount");
+            lightNode.params.SetInteger(
+                k_fixedSampleCount, forcedFixedSampleCount);
+        }
+
         // Shadow linking
         VtValue shadowLinkVal =
             sceneDelegate->GetLightParamValue(id, HdTokens->shadowLink);
@@ -707,7 +718,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
     }
 
     if (dirtyLightInstance) {
-    
+
         riley::MaterialId materialId;
 #if HD_API_VERSION < 46
         if (_hdLightType == HdPrmanTokens->meshLight) {
@@ -721,7 +732,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
             const HdRprim* rPrim = sceneDelegate->GetRenderIndex()
                 .GetRprim(sourceGeomPath);
             const auto* gprim = dynamic_cast<const HdPrman_GprimBase*>(rPrim);
-            
+
             _geometryPrototypeId = gprim->GetPrototypeIds()[0];
             _sourceGeomPath = sourceGeomPath;
 
@@ -849,13 +860,13 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
             }
         } else if (_lightShaderType == us_PxrSphereLight) {
             // radius (XYZ, default 0.5)
-            VtValue radius = sceneDelegate->GetLightParamValue(id, 
+            VtValue radius = sceneDelegate->GetLightParamValue(id,
                 HdLightTokens->radius);
             if (radius.IsHolding<float>()) {
                 geomScale *= radius.UncheckedGet<float>() / 0.5;
             }
         } else if (_lightShaderType == us_PxrMeshLight) {
-            // Our mesh light geom should not be visible, and should be one-sided, 
+            // Our mesh light geom should not be visible, and should be one-sided,
             // to match the existing Katana behavior.
             // XXX: these may not be effective for volumes, either at all or
             // for certain path tracers. Volume light support is still incomplete.
@@ -924,7 +935,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
             // Singleton case. Create the light instance.
 
             // convert xform for riley
-            TfSmallVector<RtMatrix4x4, HDPRMAN_MAX_TIME_SAMPLES> 
+            TfSmallVector<RtMatrix4x4, HDPRMAN_MAX_TIME_SAMPLES>
                 xf_rt_values(xf.count);
             for (size_t i = 0; i < xf.count; ++i) {
                 xf_rt_values[i] = HdPrman_Utils::GfMatrixToRtMatrix(xf.values[i]);
@@ -997,7 +1008,7 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
                 if (dirtySourceGeom) {
                     instancer->Depopulate(renderParam, id);
                 }
-            
+
                 // XXX: The dirtybits we have are not useful to the instancer.
                 // we should translate them, but to do so accurately would
                 // require a lot more state. So we will set DirtyTransform
