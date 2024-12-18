@@ -7,7 +7,6 @@
 
 #include "pxr/base/arch/systemInfo.h"
 #include "pxr/base/tf/pathUtils.h"
-#include "pxr/base/tf/stringUtils.h"
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
