@@ -64,6 +64,18 @@ TF_DEFINE_PRIVATE_TOKENS(
     (dmat4)
 );
 
+static void
+DumpShaderSource(const std::string& source)
+{
+    std::istringstream stream{source};
+    for (std::string line; std::getline(stream, line); ) {
+        // Remove glslfx source line comments
+        if (!TfStringStartsWith(line, "// line ")) {
+            std::cout << line << '\n';
+        }
+    }
+}
+
 static bool
 CodeGenTest(HdStResourceRegistrySharedPtr const &registry,
     HdSt_ShaderKey const &key, bool instance, bool smoothNormals)
@@ -275,28 +287,28 @@ CodeGenTest(HdStResourceRegistrySharedPtr const &registry,
     std::cout <<
         "=======================================================\n"
         "  VERTEX SHADER                                        \n"
-        "=======================================================\n"
-              << codeGen.GetVertexShaderSource();
+        "=======================================================\n";
+    DumpShaderSource(codeGen.GetVertexShaderSource());
     std::cout <<
         "=======================================================\n"
         "  TESS CONTROL SHADER                                  \n"
-        "=======================================================\n"
-              << codeGen.GetTessControlShaderSource();
+        "=======================================================\n";
+    DumpShaderSource(codeGen.GetTessControlShaderSource());
     std::cout <<
         "=======================================================\n"
         "  TESS EVAL SHADER                                     \n"
-        "=======================================================\n"
-              << codeGen.GetTessEvalShaderSource();
+        "=======================================================\n";
+    DumpShaderSource(codeGen.GetTessEvalShaderSource());
     std::cout <<
         "=======================================================\n"
         "  GEOMETRY SHADER                                      \n"
-        "=======================================================\n"
-              << codeGen.GetGeometryShaderSource();
+        "=======================================================\n";
+    DumpShaderSource(codeGen.GetGeometryShaderSource());
     std::cout <<
         "=======================================================\n"
         "  FRAGMENT SHADER                                      \n"
-        "=======================================================\n"
-              << codeGen.GetFragmentShaderSource();
+        "=======================================================\n";
+    DumpShaderSource(codeGen.GetFragmentShaderSource());
 
     return TF_VERIFY(mark.IsClean());
 }
