@@ -277,10 +277,14 @@ void wrapHydraObserver()
 
             .def("TargetToNamedSceneIndex", &This::TargetToNamedSceneIndex)
             .def("TargetToInputSceneIndex", &This::TargetToInputSceneIndex)
+            .def("TargetToNestedInputSceneIndex",
+                 &This::TargetToNestedInputSceneIndex)
 
             .def("GetDisplayName", &This::GetDisplayName)
 
             .def("GetInputDisplayNames", &This::GetInputDisplayNames)
+            .def("GetNestedInputDisplayNames",
+                 &This::GetNestedInputDisplayNames)
 
             .def("GetChildPrimPaths", &This::GetChildPrimPaths)
             .def("GetPrim", &_WrapGetPrim)
