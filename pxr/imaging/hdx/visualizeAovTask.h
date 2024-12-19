@@ -104,7 +104,7 @@ private:
     bool _CreatePipeline(HgiTextureDesc const& outputTextureDesc);
 
     // Utility to create a texture sampler
-    bool _CreateSampler();
+    bool _CreateSampler(HgiTextureDesc const& inputAovTextureDesc);
 
     // Create texture to write the colorized results into.
     bool _CreateOutputTexture(GfVec3i const &dimensions);
