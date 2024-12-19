@@ -249,6 +249,7 @@ pxr_test_scripts(
     testenv/testUsdStageDefaultResolver.py
     testenv/testUsdStageLoadUnload.py
     testenv/testUsdStagePopulationMasks.py
+    testenv/testUsdTimeCode.py
     testenv/testUsdTimeCodeRepr.py
     testenv/testUsdTimeOffsets.py
     testenv/testUsdTimeSamples.py
@@ -1043,6 +1044,12 @@ pxr_register_test(testUsdStagePopulationMasks
 pxr_register_test(testUsdTimeCodeRepr
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdTimeCodeRepr"
+    EXPECTED_RETURN_CODE 0
+)
+
+pxr_register_test(testUsdTimeCode
+    PYTHON
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdTimeCode"
     EXPECTED_RETURN_CODE 0
 )
 
