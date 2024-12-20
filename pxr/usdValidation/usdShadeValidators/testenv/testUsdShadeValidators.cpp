@@ -62,8 +62,8 @@ TestUsdShadeValidators()
         = registry.GetValidatorMetadataForPlugin(
             _tokens->usdShadeValidatorsPlugin);
     TF_AXIOM(metadata.size() == 8);
-    for (const UsdValidationValidatorMetadata &metadata : metadata) {
-        validatorMetadataNameSet.insert(metadata.name);
+    for (const UsdValidationValidatorMetadata &m : metadata) {
+        validatorMetadataNameSet.insert(m.name);
     }
 
     TF_AXIOM(validatorMetadataNameSet == expectedUsdShadeValidatorNames);
