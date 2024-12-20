@@ -1072,7 +1072,20 @@ _GetHdParamsFromDataSource(
             const TfToken cspName(
                 SdfPath::JoinIdentifier(
                     HdMaterialNodeParameterSchemaTokens->colorSpace, pName));
-            hdParams[cspName] = VtValue(colorSpaceDS->GetTypedValue(0));
+            const TfToken colorSpaceToken = colorSpaceDS->GetTypedValue(0);
+            if (!colorSpaceToken.IsEmpty()) {
+                hdParams[cspName] = VtValue(colorSpaceDS->GetTypedValue(0));
+            }
+        }
+        // TypeName Metadata
+        if (HdTokenDataSourceHandle typeNameDs = paramSchema.GetTypeName()) {
+            const TfToken typName(
+                SdfPath::JoinIdentifier(
+                    HdMaterialNodeParameterSchemaTokens->typeName, pName));
+            const TfToken typeNameToken = typeNameDs->GetTypedValue(0);
+            if (!typeNameToken.IsEmpty()) {
+                hdParams[typName] = VtValue(typeNameToken);
+            }
         }
     }
     return hdParams;
@@ -1171,6 +1184,25 @@ _Walk(
     netHd->nodes.push_back(n);
 }
 
+// Note: Utility methods below expect a valid data source handle.
+VtDictionary
+_ToDictionary(HdSampledDataSourceContainerSchema schema)
+{
+    VtDictionary dict;
+    for (const TfToken& name : schema.GetNames()) {
+        if (HdSampledDataSourceHandle valueDs = schema.Get(name)) {
+            dict[name.GetString()] = valueDs->GetValue(0);
+        }
+    }
+    return dict;
+}
+
+VtDictionary
+_ToDictionary(HdContainerDataSourceHandle const &cds)
+{
+    return _ToDictionary(HdSampledDataSourceContainerSchema(cds));
+}
+
 static
 HdMaterialNetworkMap
 _ToMaterialNetworkMap(
@@ -1206,6 +1238,11 @@ _ToMaterialNetworkMap(
     HdMaterialConnectionContainerSchema terminalsSchema =
         netSchema.GetTerminals();
     const TfTokenVector names = terminalsSchema.GetNames();
+
+    auto config = HdSampledDataSourceContainerSchema(netSchema.GetConfig());
+    if (config) {
+        matHd.config = _ToDictionary(config);
+    }
 
     for (const auto & name : names) {
         visitedNodes.clear();
@@ -1414,25 +1451,6 @@ HdSceneIndexAdapterSceneDelegate::GetLightParamValue(
 
 namespace {
 // Note: Utility methods below expect a valid data source handle.
-
-VtDictionary
-_ToDictionary(
-    HdSampledDataSourceContainerSchema schema)
-{
-    VtDictionary dict;
-    for (const TfToken& name : schema.GetNames()) {
-        if (HdSampledDataSourceHandle valueDs = schema.Get(name)) {
-            dict[name.GetString()] = valueDs->GetValue(0);
-        }
-    }
-    return dict;
-}
-
-VtDictionary
-_ToDictionary(HdContainerDataSourceHandle const &cds)
-{
-    return _ToDictionary(HdSampledDataSourceContainerSchema(cds));
-}
 
 using _RenderVar = HdRenderSettings::RenderProduct::RenderVar;
 

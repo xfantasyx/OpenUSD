@@ -1314,6 +1314,7 @@ size_t _BuildEquivalentMaterialNetwork(
     // Copy the incoming hdNetwork to the topoNetwork using only the 
     // anonymized names
     topoNetwork->primvars = hdNetwork.primvars;
+    topoNetwork->config = hdNetwork.config;
     for (const auto& terminal : hdNetwork.terminals) {
         topoNetwork->terminals.emplace(
             terminal.first,
