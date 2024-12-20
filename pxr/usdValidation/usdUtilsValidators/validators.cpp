@@ -17,6 +17,8 @@
 
 #include "pxr/usd/sdf/fileFormat.h"
 
+#include <string>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 static UsdValidationErrorVector
@@ -37,7 +39,7 @@ _PackageEncapsulationValidator(
     }
 
     SdfLayerRefPtrVector layers;
-    std::vector<std::basic_string<char>> assets, unresolvedPaths;
+    std::vector<std::string> assets, unresolvedPaths;
     const SdfAssetPath &path = SdfAssetPath(rootLayer->GetIdentifier());
 
     UsdUtilsComputeAllDependencies(path, &layers, &assets, &unresolvedPaths,
@@ -62,15 +64,15 @@ _PackageEncapsulationValidator(
                     "a valid layer to be bundled in a package.");
                 continue;
             }
-            const std::string &realPath = referencedLayer->GetRealPath();
+            const std::string &refRealPath = referencedLayer->GetRealPath();
 
             // We don't want to validate in-memory or session layers
             // since these layers will not have a real path, we skip here
-            if (realPath.empty()) {
+            if (refRealPath.empty()) {
                 continue;
             }
 
-            if (!TfStringStartsWith(realPath, packagePath)) {
+            if (!TfStringStartsWith(refRealPath, packagePath)) {
                 errors.emplace_back(
                     UsdUtilsValidationErrorNameTokens->layerNotInPackage,
                     UsdValidationErrorType::Warn,
@@ -148,6 +150,39 @@ _FileExtensionValidator(const UsdStagePtr& usdStage,
     return errors;
 }
 
+static
+UsdValidationErrorVector
+_MissingReferenceValidator(const UsdStagePtr& usdStage,
+                           const UsdValidationTimeRange &/*timeRange*/) 
+{
+    const SdfLayerRefPtr& rootLayer = usdStage->GetRootLayer();
+
+    SdfLayerRefPtrVector layers;
+    std::vector<std::string> unresolvedPaths;
+    const SdfAssetPath& path = SdfAssetPath(rootLayer->GetIdentifier());
+
+    UsdUtilsComputeAllDependencies(path, &layers, nullptr /*assets*/, 
+                                   &unresolvedPaths, nullptr);
+
+    UsdValidationErrorVector errors;
+    for(const std::string &unresolvedPath : unresolvedPaths)
+    {
+        errors.emplace_back(
+            UsdUtilsValidationErrorNameTokens->unresolvableDependency,
+            UsdValidationErrorType::Error,
+            UsdValidationErrorSites {
+                UsdValidationErrorSite(
+                    rootLayer, SdfPath(unresolvedPath))
+            },
+            TfStringPrintf(
+            ("Found unresolvable external dependency "
+                "'%s'."), unresolvedPath.c_str())
+        );
+    }
+
+    return errors;
+}
+
 TF_REGISTRY_FUNCTION(UsdValidationRegistry)
 {
     UsdValidationRegistry &registry = UsdValidationRegistry::GetInstance();
@@ -159,6 +194,11 @@ TF_REGISTRY_FUNCTION(UsdValidationRegistry)
     registry.RegisterPluginValidator(
         UsdUtilsValidatorNameTokens->fileExtensionValidator,
         _FileExtensionValidator);
+
+    registry.RegisterPluginValidator(
+       UsdUtilsValidatorNameTokens->missingReferenceValidator, 
+        _MissingReferenceValidator);
+
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

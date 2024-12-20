@@ -58,6 +58,10 @@
 	Keywords: UsdSkelValidators
 	SchemaTypes: UsdSkelBindingAPI
 	isSuite: False
+[usdUtilsValidators:MissingReferenceValidator]:
+	Doc: The composed USD stage should not contain any unresolvable asset dependencies (in every possible variation of the asset), when using the default asset resolver.
+	Keywords: UsdUtilsValidators
+	isSuite: False
 [usdValidation:CompositionErrorTest]:
 	Doc: Validator aims at providing all composition errors, which were generated while composing the stage.
 	Keywords: UsdCoreValidators

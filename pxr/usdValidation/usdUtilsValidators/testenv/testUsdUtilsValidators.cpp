@@ -7,6 +7,10 @@
 
 #include "pxr/base/arch/systemInfo.h"
 #include "pxr/base/tf/pathUtils.h"
+#include "pxr/usd/usd/editContext.h"
+#include "pxr/usd/usd/variantSets.h"
+#include "pxr/usd/usdShade/shader.h"
+#include "pxr/usd/usdGeom/tokens.h"
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
@@ -30,18 +34,19 @@ TestUsdUsdzValidators()
     UsdValidationValidatorMetadataVector metadata
         = registry.GetValidatorMetadataForPlugin(
             _tokens->usdUtilsValidatorsPlugin);
-    TF_AXIOM(metadata.size() == 2);
+    TF_AXIOM(metadata.size() == 3);
     // Since other validators can be registered with a UsdUtilsValidators
     // keyword, our validators registered in usd are a subset of the entire
     // set.
     std::set<TfToken> validatorMetadataNameSet;
-    for (const UsdValidationValidatorMetadata &metadata : metadata) {
-        validatorMetadataNameSet.insert(metadata.name);
+    for (const UsdValidationValidatorMetadata &m : metadata) {
+        validatorMetadataNameSet.insert(m.name);
     }
 
     const std::set<TfToken> expectedValidatorNames
         = { UsdUtilsValidatorNameTokens->packageEncapsulationValidator,
-            UsdUtilsValidatorNameTokens->fileExtensionValidator };
+            UsdUtilsValidatorNameTokens->fileExtensionValidator, 
+            UsdUtilsValidatorNameTokens->missingReferenceValidator };
 
     TF_AXIOM(validatorMetadataNameSet == expectedValidatorNames);
 }
@@ -90,7 +95,7 @@ TestPackageEncapsulationValidator()
         const std::string realUsdzPath = rootLayer->GetRealPath();
         const std::string errorLayer
             = TfStringCatPaths(TfGetPathName(TfAbsPath(rootLayerIdentifier)),
-                               "excludedDirectory/layer.usda");
+                    "excludedDirectory/layer.usda");
 
         std::filesystem::path parentDir
             = std::filesystem::path(realUsdzPath).parent_path();
@@ -99,22 +104,22 @@ TestPackageEncapsulationValidator()
 
         std::array<std::string, 2> expectedErrorMessages
             = { TfStringPrintf(("Found referenced layer '%s' that does not "
-                                "belong to the package '%s'."),
-                               errorLayer.c_str(), realUsdzPath.c_str()),
+                        "belong to the package '%s'."),
+                    errorLayer.c_str(), realUsdzPath.c_str()),
                 TfStringPrintf(("Found asset reference '%s' that does not belong"
-                                " to the package '%s'."),
-                               errorAsset.c_str(), realUsdzPath.c_str()) };
+                            " to the package '%s'."),
+                        errorAsset.c_str(), realUsdzPath.c_str()) };
 
         std::array<TfToken, 2> expectedErrorIdentifiers = {
             TfToken(
-                "usdUtilsValidators:PackageEncapsulationValidator.LayerNotInPackage"),
+                    "usdUtilsValidators:PackageEncapsulationValidator.LayerNotInPackage"),
             TfToken(
-                "usdUtilsValidators:PackageEncapsulationValidator.AssetNotInPackage")
+                    "usdUtilsValidators:PackageEncapsulationValidator.AssetNotInPackage")
         };
 
         for (size_t i = 0; i < errors.size(); ++i) {
             ValidateError(errors[i], expectedErrorMessages[i],
-                expectedErrorIdentifiers[i], UsdValidationErrorType::Warn);
+                    expectedErrorIdentifiers[i], UsdValidationErrorType::Warn);
         }
     }
 
@@ -160,12 +165,114 @@ TestFileExtensionValidator()
     TF_AXIOM(errors.empty());
 }
 
+static void
+TestMissingReferenceValidator()
+{
+    UsdValidationRegistry& registry = UsdValidationRegistry::GetInstance();
+
+    // Verify the validator exists
+    const UsdValidationValidator *validator = registry.GetOrLoadValidatorByName(
+            UsdUtilsValidatorNameTokens->missingReferenceValidator);
+
+    TF_AXIOM(validator);
+
+    const UsdStageRefPtr& stage = UsdStage::CreateInMemory();
+
+    const UsdPrim xform = stage->DefinePrim(SdfPath("/Prim"), 
+                                            UsdGeomTokens->Xform);
+    const SdfReference badLayerReference("doesNotExist.usd");
+    xform.GetReferences().AddReference(badLayerReference);
+
+    // Validate an error occurs for a missing layer reference
+    {
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+        TF_AXIOM(errors.size() == 1);
+        const std::string expectedErrorMessage = "Found unresolvable external "
+                                                 "dependency 'doesNotExist.usd'.";
+        const TfToken expectedIdentifier =
+            TfToken(
+            "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
+
+        ValidateError(errors[0], expectedErrorMessage,
+                expectedIdentifier);
+    }
+
+    // Remove the bad layer reference and add a shader prim for the next test
+    xform.GetReferences().RemoveReference(badLayerReference);
+    UsdShadeShader shader = UsdShadeShader::Define(stage,
+        SdfPath("/Prim/Shader"));
+    const TfToken notFoundAsset("notFoundAsset");
+    UsdShadeInput notFoundAssetInput = shader.CreateInput(
+        notFoundAsset, SdfValueTypeNames->Asset);
+    notFoundAssetInput.Set(SdfAssetPath("doesNotExist.jpg"));
+
+    // Validate an error occurs for a missing asset reference
+    {
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+        TF_AXIOM(errors.size() == 1);
+        const std::string expectedErrorMessage = "Found unresolvable external "
+            "dependency 'doesNotExist.jpg'.";
+        const TfToken expectedIdentifier =
+            TfToken(
+            "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
+
+        ValidateError(errors[0], expectedErrorMessage,
+                expectedIdentifier);
+    }
+
+    // Remove shader prim and add a variant set for the next test
+    stage->RemovePrim(shader.GetPath());
+    UsdVariantSets variantSets = xform.GetVariantSets();
+    UsdVariantSet testVariantSet = variantSets.AddVariantSet("testVariantSet");
+
+    testVariantSet.AddVariant("invalid");
+    testVariantSet.AddVariant("valid");
+
+    testVariantSet.SetVariantSelection("invalid");
+
+    {
+        UsdEditContext context(testVariantSet.GetVariantEditContext());
+        UsdShadeShader s = UsdShadeShader::Define(
+            stage, xform.GetPath().AppendChild(TfToken("Shader")));
+        UsdShadeInput invalidAssetInput = s.CreateInput(
+            TfToken("invalidAsset"), SdfValueTypeNames->Asset);
+        invalidAssetInput.Set(SdfAssetPath("doesNotExistOnVariant.jpg"));
+    }
+    testVariantSet.SetVariantSelection("valid");
+
+    // Validate an error occurs on a nonexistent asset on an inactive variant
+    {
+        const UsdValidationErrorVector errors = validator->Validate(stage);
+        TF_AXIOM(errors.size() == 1);
+        const std::string expectedErrorMessage = 
+            "Found unresolvable external dependency "
+            "'doesNotExistOnVariant.jpg'.";
+        const TfToken expectedIdentifier =
+            TfToken(
+            "usdUtilsValidators:MissingReferenceValidator.UnresolvableDependency");
+
+        ValidateError(errors[0], expectedErrorMessage,
+                expectedIdentifier);
+    }
+
+    // Remove the variant set and add a valid reference
+    SdfPrimSpecHandle primSpec = 
+        stage->GetRootLayer()->GetPrimAtPath(xform.GetPath());
+    primSpec->RemoveVariantSet("testVariantSet");
+    xform.GetPrim().GetReferences().AddReference("pass.usdz");
+
+    const UsdValidationErrorVector errors = validator->Validate(stage);
+
+    TF_AXIOM(errors.empty());
+}
+
 int
 main()
 {
     TestUsdUsdzValidators();
     TestPackageEncapsulationValidator();
     TestFileExtensionValidator();
+    TestMissingReferenceValidator();
 
     return EXIT_SUCCESS;
 }

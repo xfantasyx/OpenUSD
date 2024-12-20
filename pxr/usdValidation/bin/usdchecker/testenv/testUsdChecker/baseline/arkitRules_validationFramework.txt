@@ -62,6 +62,10 @@
 	Doc: Only valid core layer extensions (.usd, .usda, .usdc, .usdz), valid core texture extensions (.exr, .jpg, .jpeg, .png) and embedded audio files (.M4A, .MP3, .WAV) are allowed in a package.
 	Keywords: UsdUtilsValidators, UsdzValidators
 	isSuite: False
+[usdUtilsValidators:MissingReferenceValidator]:
+	Doc: The composed USD stage should not contain any unresolvable asset dependencies (in every possible variation of the asset), when using the default asset resolver.
+	Keywords: UsdUtilsValidators
+	isSuite: False
 [usdUtilsValidators:PackageEncapsulationValidator]:
 	Doc: If the root layer is a package, then its recommended for the composed stage to not contain references to files outside the package. The package should be self-contained, warn if not.
 	Keywords: UsdUtilsValidators, UsdzValidators
