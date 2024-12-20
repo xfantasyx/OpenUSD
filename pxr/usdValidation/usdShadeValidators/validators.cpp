@@ -24,6 +24,7 @@
 #include "pxr/usdValidation/usdShadeValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
+#include "pxr/usdValidation/usdValidation/timeRange.h"
 
 #include <algorithm>
 #include <unordered_map>
@@ -32,7 +33,8 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 static UsdValidationErrorVector
-_EncapsulationValidator(const UsdPrim &usdPrim)
+_EncapsulationValidator(const UsdPrim &usdPrim, 
+                        const UsdValidationTimeRange &/*timeRange*/)
 {
     const UsdShadeConnectableAPI &connectable = UsdShadeConnectableAPI(usdPrim);
 
@@ -103,7 +105,9 @@ _EncapsulationValidator(const UsdPrim &usdPrim)
 }
 
 static UsdValidationErrorVector
-_MaterialBindingApiAppliedValidator(const UsdPrim &usdPrim)
+_MaterialBindingApiAppliedValidator(
+    const UsdPrim &usdPrim, 
+    const UsdValidationTimeRange &/*timeRange*/)
 {
     UsdValidationErrorVector errors;
 
@@ -136,7 +140,9 @@ _MaterialBindingApiAppliedValidator(const UsdPrim &usdPrim)
 }
 
 static UsdValidationErrorVector
-_MaterialBindingRelationships(const UsdPrim &usdPrim)
+_MaterialBindingRelationships(
+    const UsdPrim &usdPrim, 
+    const UsdValidationTimeRange &/*timeRange*/)
 {
     if (!usdPrim) {
         return {};
@@ -243,7 +249,9 @@ _MaterialBindingCheckCollection(const UsdPrim &prim, const UsdRelationship &rel,
 }
 
 static UsdValidationErrorVector
-_MaterialBindingCollectionValidator(const UsdPrim &usdPrim)
+_MaterialBindingCollectionValidator(
+    const UsdPrim &usdPrim, 
+    const UsdValidationTimeRange &/*timeRange*/)
 {
     if (!usdPrim || !usdPrim.HasAPI<UsdShadeMaterialBindingAPI>()) {
         return {};
@@ -267,7 +275,9 @@ _MaterialBindingCollectionValidator(const UsdPrim &usdPrim)
 }
 
 static UsdValidationErrorVector
-_ShaderPropertyTypeConformance(const UsdPrim &usdPrim)
+_ShaderPropertyTypeConformance(
+    const UsdPrim &usdPrim, 
+    const UsdValidationTimeRange &/*timeRange*/)
 {
     if (!(usdPrim
           && usdPrim.IsInFamily<UsdShadeShader>(
@@ -442,7 +452,9 @@ _ShaderPropertyTypeConformance(const UsdPrim &usdPrim)
 }
 
 static UsdValidationErrorVector
-_SubsetMaterialBindFamilyName(const UsdPrim &usdPrim)
+_SubsetMaterialBindFamilyName(
+    const UsdPrim &usdPrim, 
+    const UsdValidationTimeRange &/*timeRange*/)
 {
     if (!(usdPrim
           && usdPrim.IsInFamily<UsdGeomSubset>(
@@ -489,7 +501,8 @@ _SubsetMaterialBindFamilyName(const UsdPrim &usdPrim)
 }
 
 static UsdValidationErrorVector
-_SubsetsMaterialBindFamily(const UsdPrim &usdPrim)
+_SubsetsMaterialBindFamily(const UsdPrim &usdPrim, 
+                           const UsdValidationTimeRange &/*timeRange*/)
 {
     if (!(usdPrim
           && usdPrim.IsInFamily<UsdGeomImageable>(
@@ -542,8 +555,9 @@ _SubsetsMaterialBindFamily(const UsdPrim &usdPrim)
 
 static
 UsdValidationErrorVector
-_NormalMapTextureValidator(const UsdPrim& usdPrim) {
-
+_NormalMapTextureValidator(const UsdPrim& usdPrim,
+                           const UsdValidationTimeRange& /*timeRange*/) 
+{
     if (!usdPrim.IsA<UsdShadeShader>()) {
         return {};
     }

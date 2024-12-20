@@ -13,13 +13,16 @@
 #include "pxr/usdValidation/usdUtilsValidators/validatorTokens.h"
 #include "pxr/usdValidation/usdValidation/error.h"
 #include "pxr/usdValidation/usdValidation/registry.h"
+#include "pxr/usdValidation/usdValidation/timeRange.h"
 
 #include "pxr/usd/sdf/fileFormat.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
 static UsdValidationErrorVector
-_PackageEncapsulationValidator(const UsdStagePtr &usdStage)
+_PackageEncapsulationValidator(
+    const UsdStagePtr &usdStage, 
+    const UsdValidationTimeRange &/*timeRange*/)
 {
     UsdValidationErrorVector errors;
 
@@ -100,7 +103,9 @@ _PackageEncapsulationValidator(const UsdStagePtr &usdStage)
 }
 
 static UsdValidationErrorVector
-_FileExtensionValidator(const UsdStagePtr& usdStage) {
+_FileExtensionValidator(const UsdStagePtr& usdStage,
+                        const UsdValidationTimeRange& /*timeRange*/) 
+{
     UsdValidationErrorVector errors;
 
     const std::set<TfToken> validExtensions = {TfToken("usda"),
