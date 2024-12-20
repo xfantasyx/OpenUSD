@@ -41,6 +41,8 @@ TF_DEFINE_PRIVATE_TOKENS(
     (file)
     (normal)
     (opacityThreshold)
+    (opacityMode)
+    (transparent)
 
     // UsdPreviewSurface conversion to Pxr nodes
     (PxrDisplace)
@@ -73,6 +75,8 @@ TF_DEFINE_PRIVATE_TOKENS(
     (glowColor)
     (glowColorOut)
     (normalIn)
+    (refractionGain)
+    (refractionGainOut)
     (specularEdgeColor)
     (specularEdgeColorOut)
     (specularFaceColor)
@@ -242,6 +246,18 @@ _ProcessPreviewSurfaceNode(
             netInterface->SetNodeInputConnection(
                 pxrSurfaceNodeName, inOutPair.first,
                 {{nodeName, inOutPair.second}});
+        }
+
+        // if opacityMode is 'transparent' use refraction
+        VtValue vtOpMode;
+        if (_GetParameter(
+                netInterface, nodeName, _tokens->opacityMode, &vtOpMode)) {
+
+            if (vtOpMode.Get<TfToken>() == _tokens->transparent) {
+                netInterface->SetNodeInputConnection(
+                    pxrSurfaceNodeName, _tokens->refractionGain,
+                    {{nodeName, _tokens->refractionGainOut}});
+            }
         }
     }
 
