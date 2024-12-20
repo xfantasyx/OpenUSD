@@ -18,6 +18,18 @@
                             "UsdzValidators"
                         ]
                     },
+                    "RootPackageValidator": {
+                        "doc": "Files within the root layer of a usdz package should not be compressed or encrypted, and should be aligned to 64 bytes.",
+                        "keywords": [
+                            "UsdzValidators"
+                        ]
+                    },
+                    "UsdzPackageValidator": {
+                        "doc": "Files within all usdz packages within a stage should not be compressed or encrypted, and should be aligned to 64 bytes.",
+                        "keywords": [
+                            "UsdzValidators"
+                        ]
+                    },
                     "keywords": [
                         "UsdUtilsValidators"
                     ]

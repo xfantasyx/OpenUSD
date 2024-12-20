@@ -94,8 +94,8 @@ _PackageEncapsulationValidator(
                     UsdValidationErrorSites {
                         UsdValidationErrorSite(rootLayer, SdfPath(asset)) },
                     TfStringPrintf(
-                        ("Found asset reference '%s' that does not belong to "
-                         "the package '%s'."),
+                        "Found asset reference '%s' that does not belong to "
+                         "the package '%s'.",
                         asset.c_str(), packagePath.c_str()));
             }
         }
@@ -183,6 +183,114 @@ _MissingReferenceValidator(const UsdStagePtr& usdStage,
     return errors;
 }
 
+static UsdValidationErrorVector
+_GetUsdzPackageErrors(const SdfLayerHandle &rootLayer)
+{
+    const UsdZipFile zipFile = UsdZipFile::Open(
+            rootLayer->GetRealPath().c_str());
+    if (!zipFile) {
+        return {};
+    }
+
+    const std::string packagePath = ArSplitPackageRelativePathOuter(
+            rootLayer->GetIdentifier()).first;
+
+    UsdValidationErrorVector errors;
+    for(auto it = zipFile.begin(); it != zipFile.end(); ++it)
+    {
+        const UsdZipFile::FileInfo &fileInfo = it.GetFileInfo();
+        if (fileInfo.compressionMethod != 0)
+        {
+            const std::string &fileName = *it;
+            errors.emplace_back(
+                UsdUtilsValidationErrorNameTokens->compressionDetected,
+                UsdValidationErrorType::Error,
+                UsdValidationErrorSites {
+                    UsdValidationErrorSite(
+                            rootLayer, SdfPath(fileName))
+                },
+                TfStringPrintf(
+                    "File '%s' in package '%s' has compression. Compression "
+                    "method is '%u', actual size is %lu. Uncompressed size "
+                    "is %lu.", fileName.c_str(), packagePath.c_str(), 
+                    fileInfo.compressionMethod, fileInfo.size, 
+                    fileInfo.uncompressedSize)
+            );
+        }
+
+        if (fileInfo.dataOffset % 64 != 0)
+        {
+            const std::string &fileName = *it;
+            errors.emplace_back(
+                UsdUtilsValidationErrorNameTokens->byteMisalignment,
+                UsdValidationErrorType::Error,
+                UsdValidationErrorSites {
+                    UsdValidationErrorSite(
+                            rootLayer, SdfPath(fileName))
+                },
+                TfStringPrintf("File '%s' in package '%s' has an invalid "
+                    "offset %zu.", fileName.c_str(), packagePath.c_str(),
+                    fileInfo.dataOffset)
+            );
+        }
+    }
+
+    return errors;
+}
+
+static UsdValidationErrorVector
+_RootPackageValidator(const UsdStagePtr& usdStage,
+                           const UsdValidationTimeRange &/*timeRange*/)
+{
+    const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
+    if (!rootLayer->GetFileFormat()->IsPackage())
+    {
+        return {};
+    }
+    return _GetUsdzPackageErrors(rootLayer);
+}
+
+static UsdValidationErrorVector
+_UsdzPackageValidator(const UsdStagePtr& usdStage,
+                           const UsdValidationTimeRange &/*timeRange*/)
+{
+    SdfLayerRefPtrVector layers;
+    const SdfLayerHandle &rootLayer = usdStage->GetRootLayer();
+    const SdfAssetPath &path = SdfAssetPath(rootLayer->GetIdentifier());
+
+    UsdUtilsComputeAllDependencies(path, &layers, nullptr /*assets*/, 
+                                   nullptr /*unresolvedPaths*/, 
+                                   nullptr /*processingFunc*/);
+
+    const std::string &realPath = rootLayer->GetRealPath();
+    const std::string &packagePath
+        = ArIsPackageRelativePath(rootLayer->GetIdentifier())
+            ? ArSplitPackageRelativePathOuter(realPath).first
+            : realPath;
+
+    UsdValidationErrorVector errors;
+
+    if (!packagePath.empty())
+    {
+        for (const SdfLayerRefPtr &referencedLayer : layers)
+        {
+            if (!referencedLayer)
+            {
+                // Invalid reference layer found; PackageEncapsulationValidator
+                // will catch this, so we can skip this layer here.
+                continue;
+            }
+            UsdValidationErrorVector layerErrors = _GetUsdzPackageErrors(
+                    referencedLayer);
+            errors.insert(
+                errors.end(), std::make_move_iterator(layerErrors.begin()),
+                std::make_move_iterator(layerErrors.end()));
+        }
+    }
+
+    return errors;
+}
+
 TF_REGISTRY_FUNCTION(UsdValidationRegistry)
 {
     UsdValidationRegistry &registry = UsdValidationRegistry::GetInstance();
@@ -192,13 +300,20 @@ TF_REGISTRY_FUNCTION(UsdValidationRegistry)
         _PackageEncapsulationValidator);
 
     registry.RegisterPluginValidator(
-        UsdUtilsValidatorNameTokens->fileExtensionValidator,
-        _FileExtensionValidator);
+            UsdUtilsValidatorNameTokens->fileExtensionValidator,
+            _FileExtensionValidator);
 
     registry.RegisterPluginValidator(
        UsdUtilsValidatorNameTokens->missingReferenceValidator, 
         _MissingReferenceValidator);
 
+    registry.RegisterPluginValidator(
+            UsdUtilsValidatorNameTokens->rootPackageValidator,
+            _RootPackageValidator);
+
+    registry.RegisterPluginValidator(
+            UsdUtilsValidatorNameTokens->usdzPackageValidator,
+            _UsdzPackageValidator);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE
