@@ -105,8 +105,12 @@ _MakeNewPlatformDefaultHgi()
     if (!instance->IsBackendSupported()) {
         TF_DEBUG(HGI_DEBUG_INSTANCE_CREATION).Msg("Hgi %s is not supported\n",
             hgiType);
-        delete instance;
-        return nullptr;
+        // XXX Currently, returning nullptr (rather than a non-supported hgi 
+        // instance) causes a crash in one of our studio tests. We disable the
+        // desired behavior until we can fix the test. 
+        return instance;
+        // delete instance;
+        // return nullptr;
     }
 
     TF_DEBUG(HGI_DEBUG_INSTANCE_CREATION).Msg("Successfully created platform "
