@@ -158,12 +158,12 @@ HdStMaterialXShaderGen<Base>::_EmitGlslfxHeader(mx::ShaderStage& mxStage) const
         Base::emitString(R"(    "attributes": {)" "\n", mxStage);
         std::string line = ""; unsigned int i = 0;
         for (mx::StringMap::const_reference primvarPair : _mxHdPrimvarMap) {
-            const mx::TypeDesc *mxType = mx::TypeDesc::get(primvarPair.second);
-            if (mxType == nullptr) {
+            const auto mxType = mx::TypeDesc::get(primvarPair.second);
+            if (mxType == mx::Type::NONE) {
                 TF_WARN("MaterialX geomprop '%s' has unknown type '%s'",
                         primvarPair.first.c_str(), primvarPair.second.c_str());
             }
-            const std::string type = mxType 
+            const std::string type = mxType != mx::Type::NONE
                 ? Base::_syntax->getTypeName(mxType) : "vec2";
 
             line += "        \"" + primvarPair.first + "\": {\n";
@@ -287,12 +287,12 @@ HdStMaterialXShaderGen<Base>::_EmitMxSurfaceShader(
         if (outputConnection) {
 
             std::string finalOutput = outputConnection->getVariable();
-            const std::string& channels = outputSocket->getChannels();
-            if (!channels.empty()) {
-                finalOutput = Base::_syntax->getSwizzledVariable(
-                    finalOutput, outputConnection->getType(),
-                    channels, outputSocket->getType());
-            }
+            //const std::string& channels = outputSocket->getChannels();
+            //if (!channels.empty()) {
+            //    finalOutput = Base::_syntax->getSwizzledVariable(
+            //        finalOutput, outputConnection->getType(),
+            //        channels, outputSocket->getType());
+            //}
 
             if (mxGraph.hasClassification(
                     mx::ShaderNode::Classification::SURFACE)) {
@@ -313,7 +313,7 @@ HdStMaterialXShaderGen<Base>::_EmitMxSurfaceShader(
                 }
             }
             else {
-                if (!outputSocket->getType()->isFloat4()) {
+                if (!outputSocket->getType().isFloat4()) {
                     Base::toVec4(outputSocket->getType(), finalOutput);
                 }
                 emitLine(finalOutputReturn + 
@@ -325,7 +325,7 @@ HdStMaterialXShaderGen<Base>::_EmitMxSurfaceShader(
                 ? Base::_syntax->getValue(
                     outputSocket->getType(), *outputSocket->getValue()) 
                 : Base::_syntax->getDefaultValue(outputSocket->getType());
-            if (!outputSocket->getType()->isFloat4()) {
+            if (!outputSocket->getType().isFloat4()) {
                 std::string finalOutput = outputSocket->getVariable() + "_tmp";
                 emitLine(Base::_syntax->getTypeName(outputSocket->getType()) 
                         + " " + finalOutput + " = " + outputValue, mxStage);
@@ -417,8 +417,8 @@ HdStMaterialXShaderGen<Base>::_EmitMxInitFunction(
         mxStage.getUniformBlock(mx::HW::PUBLIC_UNIFORMS);
     for (size_t i = 0; i < paramsBlock.size(); ++i) {
         const mx::ShaderPort* variable = paramsBlock[i];
-        const mx::TypeDesc* variableType = variable->getType();
-        if (!_IsHardcodedPublicUniform(*variableType)) {
+        const mx::TypeDesc variableType = variable->getType();
+        if (!_IsHardcodedPublicUniform(variableType)) {
             emitLine(variable->getVariable() + " = HdGet_" +
                 variable->getVariable() + "()", mxStage);
         }
@@ -624,7 +624,7 @@ HdStMaterialXShaderGen<Base>::emitVariableDeclarations(
     {
         Base::emitLineBegin(stage);
         const mx::ShaderPort* variable = block[i];
-        const mx::TypeDesc* varType = variable->getType();
+        const auto varType = variable->getType();
 
         // If bindlessTextures are not enabled the Mx Smpler names are mapped 
         // to the Hydra equivalents in HdStMaterialXShaderGen*::_EmitMxFunctions
@@ -633,7 +633,7 @@ HdStMaterialXShaderGen<Base>::emitVariableDeclarations(
         }
 
         // Only declare the variables that we need to initialize with Hd Data
-        if ( (isPublicUniform && !_IsHardcodedPublicUniform(*varType))
+        if ( (isPublicUniform && !_IsHardcodedPublicUniform(varType))
             || MxHdVariables.count(variable->getName()) ) {
             Base::emitVariableDeclaration(variable, mx::EMPTY_STRING,
                                     context, stage, false /* assignValue */);

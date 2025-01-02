@@ -76,6 +76,9 @@ _disable_warning("4180")
 # tbb/enumerable_thread_specific.h
 _disable_warning("4334")
 
+# Disable warning C4819 ANSI source file on a system using a codepage
+_disable_warning("4819")
+
 # Disable warning C4996 regarding fopen(), strcpy(), etc.
 _add_define("_CRT_SECURE_NO_WARNINGS")
 
@@ -125,6 +128,9 @@ set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /Zi")
 # Enable multiprocessor builds.
 set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /MP")
 set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /Gm-")
+
+# Enable utf8
+set(_PXR_CXX_FLAGS "${_PXR_CXX_FLAGS} /utf-8")
 
 # Ignore LNK4221.  This happens when making an archive with a object file
 # with no symbols in it.  We do this a lot because of a pattern of having

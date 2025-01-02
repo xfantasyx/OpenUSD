@@ -289,7 +289,7 @@ _FindAttribute(ImageSpec const & spec, std::string const & metadataKey)
     bool convertMatrixTypes = false;
     std::string key = _TranslateMetadataKey(metadataKey, &convertMatrixTypes);
 
-    ImageIOParameter const * param = spec.find_attribute(key);
+    auto const * param = spec.find_attribute(key);
     if (!param) {
         return VtValue();
     }
@@ -687,7 +687,7 @@ HioOIIO_Image::ReadCropped(int const cropTop,
     }
 
     //// seek subimage
-    ImageSpec spec = imageInput->spec();
+    auto spec = imageInput->spec();
     if (!imageInput->seek_subimage(_subimage, _miplevel, spec)){
         imageInput->close();
         TF_CODING_ERROR("Unable to seek subimage");
@@ -697,9 +697,9 @@ HioOIIO_Image::ReadCropped(int const cropTop,
     // NOTE: For values that refer to buffer sizes (in bytes),
     // we use the size_t type. Operations with the int type
     // may overflow INT_MAX, which can be less than SIZE_MAX.
-    size_t strideLength = imageInput->spec().width *
+    stride_t strideLength = imageInput->spec().width *
                           imageInput->spec().pixel_bytes();
-    size_t readStride = (storage.flipped) ?
+    stride_t readStride = (storage.flipped) ?
                         (-strideLength) : (strideLength);
     size_t size = imageInput->spec().height * strideLength;
 
@@ -713,13 +713,13 @@ HioOIIO_Image::ReadCropped(int const cropTop,
     // If needed, convert double precision images to float
     bool res = false;
     if (imageInput->spec().format == TypeDesc::DOUBLE) {
-        res = imageInput->read_image(TypeDesc::FLOAT,
+        res = imageInput->read_image(0, 0, 0, imageInput->spec().nchannels, TypeDesc::FLOAT,
             start,
             AutoStride,
             readStride,
             AutoStride);
     } else{
-        res = imageInput->read_image(imageInput->spec().format,
+        res = imageInput->read_image(0, 0, 0, imageInput->spec().nchannels, imageInput->spec().format,
             start,
             AutoStride,
             readStride,
@@ -741,7 +741,11 @@ HioOIIO_Image::ReadCropped(int const cropTop,
     }
 
     // Construct ImageBuf that wraps around allocated pixels memory
+#if OIIO_VERSION >= 30000
+    ImageBuf imagebuf = ImageBuf(imageInput->spec(), span(pixels, size), pixels);
+#else
     ImageBuf imagebuf = ImageBuf(imageInput->spec(), pixels);
+#endif
     ImageBuf *image = &imagebuf;
 
     // Convert color images to linear (unless they are sRGB)
@@ -810,7 +814,11 @@ HioOIIO_Image::Write(StorageSpec const & storage,
     }
 
     // Read from storage
+#if OIIO_VERSION >= 30000
+    ImageBuf src(spec, span(storage.data), storage.data);
+#else
     ImageBuf src(_filename, spec, storage.data);
+#endif
     ImageBuf *image = &src;
 
     // Flip top-to-bottom

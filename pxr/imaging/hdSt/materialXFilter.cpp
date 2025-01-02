@@ -237,7 +237,7 @@ HdSt_GenMaterialXShader(
 
     // Find renderable elements in the Mtlx Document.
     std::vector<mx::TypedElementPtr> renderableElements;
-    mx::findRenderableElements(mxDoc, renderableElements);
+    renderableElements = mx::findRenderableElements(mxDoc);
 
     // Should have exactly one renderable element (material).
     if (renderableElements.size() != 1) {
@@ -510,7 +510,7 @@ _UpdatePrimvarNodes(
                 texCoordName = metadata[SdrNodeMetadata->Primvars];
             }
 
-            (*mxHdPrimvarMap)[texCoordName] = mx::Type::VECTOR2->getName();
+            (*mxHdPrimvarMap)[texCoordName] = mx::Type::VECTOR2.getName();
         }
     }
 }
@@ -577,7 +577,7 @@ _GetOpenPBRSurfaceMaterialTag(HdMaterialNode2 const& terminal)
     // See https://academysoftwarefoundation.github.io/OpenPBR/
     // and the provided implementation
     if (_ParamDiffersFrom(terminal, _tokens->transmission_weight, 0.0f) ||
-        _ParamDiffersFrom(terminal, _tokens->geometry_opacity, GfVec3f(1.0f))) {
+        _ParamDiffersFrom(terminal, _tokens->geometry_opacity, 1.0f)) {
         return HdStMaterialTagTokens->translucent.GetString();
     }
 
@@ -628,12 +628,12 @@ _GetGlTFSurfaceMaterialTag(HdMaterialNode2 const& terminal)
     return materialToken.GetString();
 }
 
-static const mx::TypeDesc*
+static const mx::TypeDesc
 _GetMxTypeDescription(std::string const& typeName)
 {
     // Add whatever is necessary for current codebase:
     static const auto _typeLibrary = 
-        std::map<std::string, const mx::TypeDesc*>{
+        std::map<std::string, const mx::TypeDesc>{
             {"float", mx::Type::FLOAT},
             {"color3", mx::Type::COLOR3},
             {"color4", mx::Type::COLOR4},
@@ -647,7 +647,7 @@ _GetMxTypeDescription(std::string const& typeName)
     if (typeDescIt != _typeLibrary.end()) {
         return typeDescIt->second;
     }
-    return nullptr;
+    return mx::Type::NONE;
 }
 
 // This function adds a stripped down version of the surfaceshader node to the
@@ -672,8 +672,8 @@ _AddStrippedSurfaceNode(
         if (!mxInputDef) {
             continue;
         }
-        auto const* mxTypeDesc = _GetMxTypeDescription(mxInputDef->getType());
-        if (!mxTypeDesc) {
+        auto const mxTypeDesc = _GetMxTypeDescription(mxInputDef->getType());
+        if (mxTypeDesc == mx::Type::NONE) {
             continue;
         }
         // If hdNode is connected to the surfaceshader node, recursively call 
@@ -690,10 +690,10 @@ _AddStrippedSurfaceNode(
             mxInput->setConnectedNode(mxConnectedNode);
         }
         // Add the connection as an input with each component set to 0.5
-        else if (mxTypeDesc->getBaseType() == mx::TypeDesc::BASETYPE_FLOAT &&
-                 mxTypeDesc->getSemantic() != mx::TypeDesc::SEMANTIC_MATRIX) {
+        else if (mxTypeDesc.getBaseType() == mx::TypeDesc::BASETYPE_FLOAT &&
+                 mxTypeDesc.getSemantic() != mx::TypeDesc::SEMANTIC_MATRIX) {
             std::string valueStr = "0.5";
-            for (size_t i = 1; i < mxTypeDesc->getSize(); ++i) {
+            for (size_t i = 1; i < mxTypeDesc.getSize(); ++i) {
                 valueStr += ", 0.5";
             }
             mx::InputPtr mxInput =
@@ -709,13 +709,13 @@ _AddStrippedSurfaceNode(
         if (!mxInputDef) {
             continue;
         }
-        auto const* mxTypeDesc = _GetMxTypeDescription(mxInputDef->getType());
-        if (!mxTypeDesc) {
+        auto const mxTypeDesc = _GetMxTypeDescription(mxInputDef->getType());
+        if (mxTypeDesc == mx::Type::NONE) {
             continue;
         }
 
-        if (mxTypeDesc->getBaseType() == mx::TypeDesc::BASETYPE_FLOAT &&
-            mxTypeDesc->getSemantic() != mx::TypeDesc::SEMANTIC_MATRIX) {
+        if (mxTypeDesc.getBaseType() == mx::TypeDesc::BASETYPE_FLOAT &&
+            mxTypeDesc.getSemantic() != mx::TypeDesc::SEMANTIC_MATRIX) {
             // Add the parameter as an input to the mxNode in the mx Document
             mx::InputPtr mxInput =
                 mxNode->addInput(mxInputDef->getName(), mxInputDef->getType());
@@ -781,7 +781,7 @@ _GetMaterialTag(
         // Outputting anything that is not a surfaceshader will be
         // considered opaque, unless outputting a color4 or vector4.
         // XXX This is not fully per USD specs, but is supported by MaterialX.
-        auto const* typeDesc = 
+        auto const typeDesc = 
             _GetMxTypeDescription(activeOutputs.back()->getType());
         if (typeDesc == mx::Type::COLOR4 || typeDesc == mx::Type::VECTOR4) {
             return HdStMaterialTagTokens->translucent.GetString();
@@ -1105,9 +1105,9 @@ _AddMaterialXParams(
         const auto paramValueIt =
             mxParamNameToValue.find(variable->getVariable());
         if (paramValueIt != mxParamNameToValue.end()) {
-            if (varType->getBaseType() == mx::TypeDesc::BASETYPE_BOOLEAN ||
-                varType->getBaseType() == mx::TypeDesc::BASETYPE_FLOAT ||
-                varType->getBaseType() == mx::TypeDesc::BASETYPE_INTEGER) {
+            if (varType.getBaseType() == mx::TypeDesc::BASETYPE_BOOLEAN ||
+                varType.getBaseType() == mx::TypeDesc::BASETYPE_FLOAT ||
+                varType.getBaseType() == mx::TypeDesc::BASETYPE_INTEGER) {
                 param.fallbackValue = paramValueIt->second;
             }
         }
@@ -1118,52 +1118,52 @@ _AddMaterialXParams(
             const auto varValue = variable->getValue();
             std::istringstream valueStream(varValue
                 ? varValue->getValueString() : std::string());
-            if (varType->getBaseType() == mx::TypeDesc::BASETYPE_BOOLEAN) {
+            if (varType.getBaseType() == mx::TypeDesc::BASETYPE_BOOLEAN) {
                 const bool val = valueStream.str() == "true";
                 param.fallbackValue = VtValue(val);
             }
-            else if (varType->getBaseType() == mx::TypeDesc::BASETYPE_FLOAT) {
-                if (varType->getSize() == 1) {
+            else if (varType.getBaseType() == mx::TypeDesc::BASETYPE_FLOAT) {
+                if (varType.getSize() == 1) {
                     float val;
                     valueStream >> val;
                     param.fallbackValue = VtValue(val);
                 }
-                else if (varType->getSize() == 2) {
+                else if (varType.getSize() == 2) {
                     GfVec2f val;
                     valueStream >> val[0] >> separator >> val[1];
                     param.fallbackValue = VtValue(val);
                 }
-                else if (varType->getSize() == 3) {
+                else if (varType.getSize() == 3) {
                     GfVec3f val;
                     valueStream >> val[0] >> separator >> val[1] >> separator 
                                 >> val[2];
                     param.fallbackValue = VtValue(val);
                 }
-                else if (varType->getSize() == 4) {
+                else if (varType.getSize() == 4) {
                     GfVec4f val;
                     valueStream >> val[0] >> separator >> val[1] >> separator
                                 >> val[2] >> separator >> val[3];
                     param.fallbackValue = VtValue(val);
                 }
             }
-            else if (varType->getBaseType() == mx::TypeDesc::BASETYPE_INTEGER) {
-                if (varType->getSize() == 1) {
+            else if (varType.getBaseType() == mx::TypeDesc::BASETYPE_INTEGER) {
+                if (varType.getSize() == 1) {
                     int val;
                     valueStream >> val;
                     param.fallbackValue = VtValue(val);
                 }
-                else if (varType->getSize() == 2) {
+                else if (varType.getSize() == 2) {
                     GfVec2i val;
                     valueStream >> val[0] >> separator >> val[1];
                     param.fallbackValue = VtValue(val);
                 }
-                else if (varType->getSize() == 3) {
+                else if (varType.getSize() == 3) {
                     GfVec3i val;
                     valueStream >> val[0] >> separator >> val[1] >> separator 
                                 >> val[2];
                     param.fallbackValue = VtValue(val);
                 }
-                else if (varType->getSize() == 4) {
+                else if (varType.getSize() == 4) {
                     GfVec4i val;
                     valueStream >> val[0] >> separator >> val[1] >> separator
                         >> val[2] >> separator >> val[3];
@@ -1177,7 +1177,7 @@ _AddMaterialXParams(
         }
 
         // For filename inputs, manage the associated texture node
-        if (varType->getSemantic() == mx::TypeDesc::SEMANTIC_FILENAME) {
+        if (varType.getSemantic() == mx::TypeDesc::SEMANTIC_FILENAME) {
             // Get the anonymized MaterialX node name from the param name
             // annonNodeName_paramName -> annonNodeName
             std::string mxNodeName = variable->getVariable();
