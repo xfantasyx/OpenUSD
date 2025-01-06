@@ -53,6 +53,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -631,9 +632,26 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
         static const int forcedFixedSampleCount =
             TfGetEnvSetting(HD_PRMAN_ALL_LIGHTS_FIXED_SAMPLE_COUNT);
         if (forcedFixedSampleCount > -1) {
-            static const RtUString k_fixedSampleCount("fixedSampleCount");
-            lightNode.params.SetInteger(
-                k_fixedSampleCount, forcedFixedSampleCount);
+            // fixedSampleCount is not valid for all lights; we
+            // allocate this list of eligible lights only if the
+            // environment variable is set.
+            static const std::unordered_set<RtUString> eligibleLights {
+                RtUString("PxrCylinderLight"),
+                RtUString("PxrDiskLight"),
+                RtUString("PxrDistantLight"),
+                RtUString("PxrDomeLight"),
+                RtUString("PxrEnvDayLight"),
+                RtUString("PxrParticleLight"),
+                RtUString("PxrPortalLight"),
+                RtUString("PxrRectLight"),
+                RtUString("PxrSphereLight"),
+                RtUString("PxrSunHaloLight"),
+                RtUString("PxrVoxelLight") };
+            if (eligibleLights.count(_lightShaderType) > 0) {
+                static const RtUString k_fixedSampleCount("fixedSampleCount");
+                lightNode.params.SetInteger(
+                    k_fixedSampleCount, forcedFixedSampleCount);
+            }
         }
 
         // Shadow linking
