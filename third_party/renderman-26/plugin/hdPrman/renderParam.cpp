@@ -200,6 +200,7 @@ HdPrman_RenderParam::HdPrman_RenderParam(
     const int& xpuCpuConfig,
     const std::vector<int>& xpuGpuConfig,
     const std::vector<std::string>& extraArgs) :
+    sceneVersion(0),
     frame(0),
     _rix(nullptr),
     _ri(nullptr),
