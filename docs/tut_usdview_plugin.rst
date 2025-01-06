@@ -206,7 +206,7 @@ module.
    from pxr import Tf
    from pxr.Usdviewq.plugin import PluginContainer
    
-   import printer
+   from . import printer
    
    
    class TutorialPluginContainer(PluginContainer):
