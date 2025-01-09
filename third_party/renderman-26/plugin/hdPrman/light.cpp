@@ -631,7 +631,16 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
 
         static const int forcedFixedSampleCount =
             TfGetEnvSetting(HD_PRMAN_ALL_LIGHTS_FIXED_SAMPLE_COUNT);
-        if (forcedFixedSampleCount > -1) {
+        // Do not set fixedSampleCount on invisible lights; fixedSampleCount
+        // will override lighting:mute, making the light visible!
+        // Note that invisible instances are excluded from instanceIndices
+        // entirely, so there is no risk of a lighting:mute/fixedSampleCount
+        // collision with instanced lights. There is currently no way to author
+        // lighting:mute from the scene. It is always derived from visibility.
+        // If we make it possible to author lighting:mute directly, using
+        // fixedSampleCount will become much, much harder in the case of
+        // instanced lights.
+        if (sceneDelegate->GetVisible(id) && forcedFixedSampleCount > -1) {
             // fixedSampleCount is not valid for all lights; we
             // allocate this list of eligible lights only if the
             // environment variable is set.
@@ -649,8 +658,16 @@ HdPrmanLight::Sync(HdSceneDelegate *sceneDelegate,
                 RtUString("PxrVoxelLight") };
             if (eligibleLights.count(_lightShaderType) > 0) {
                 static const RtUString k_fixedSampleCount("fixedSampleCount");
-                lightNode.params.SetInteger(
-                    k_fixedSampleCount, forcedFixedSampleCount);
+                // Check if the default value (0) was authored. This allows us
+                // to force it back to default for a single light. No other
+                // authored value will be respected.
+                int authoredVal = -1;
+                const bool hasAuthoredVal = lightNode.params.GetInteger(
+                    k_fixedSampleCount, authoredVal);
+                if (!hasAuthoredVal || authoredVal != 0) {
+                    lightNode.params.SetInteger(
+                        k_fixedSampleCount, forcedFixedSampleCount);
+                }
             }
         }
 
