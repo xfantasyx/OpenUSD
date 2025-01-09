@@ -12,6 +12,10 @@ page describes what metrics are collected, what hardware and software
 configurations are used, the actual metrics results, and how to generate the
 metrics locally. 
 
+.. contents:: Table of Contents
+    :local:
+    :depth: 2
+
 ***************
 What We Measure
 ***************
