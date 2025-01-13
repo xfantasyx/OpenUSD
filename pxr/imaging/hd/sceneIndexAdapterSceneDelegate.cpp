@@ -405,7 +405,7 @@ HdSceneIndexAdapterSceneDelegate::PrimsRemoved(
                     entry.primPath.GetParentPath(),
                     HdChangeTracker::DirtyTopology);
             } else if (primType == HdPrimTypeTokens->task) {
-                GetRenderIndex().RemoveTask(entry.primPath);
+                GetRenderIndex()._RemoveTask(entry.primPath);
             }
         } else {
             // Otherwise, there's a subtree and we need to call _RemoveSubtree.
@@ -488,7 +488,7 @@ HdSceneIndexAdapterSceneDelegate::PrimsDirtied(
                 HdDirtyBitsTranslator::TaskLocatorSetToDirtyBits(
                     entry.dirtyLocators);
             if (dirtyBits != HdChangeTracker::Clean) {
-                GetRenderIndex().GetChangeTracker().MarkTaskDirty(
+                GetRenderIndex().GetChangeTracker()._MarkTaskDirty(
                     indexPath, dirtyBits);
             }
         }
