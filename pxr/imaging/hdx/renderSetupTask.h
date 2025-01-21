@@ -52,6 +52,8 @@ class HdStRenderPassState;
 class HdxRenderSetupTask : public HdTask
 {
 public:
+    using TaskParams = HdxRenderTaskParams;
+
     HDX_API
     HdxRenderSetupTask(HdSceneDelegate* delegate, SdfPath const& id);
 
@@ -97,10 +99,11 @@ private:
     GfVec4d _viewport;
     HdRenderPassAovBindingVector _aovBindings;
     HdRenderPassAovBindingVector _aovInputBindings;
+    bool _enableIdRenderFromParams;
 
     void _SetRenderpassShadersForStorm(
-        HdxRenderTaskParams const& params,
-        HdStRenderPassState *renderPassState);
+        HdStRenderPassState *renderPassState,
+        HdResourceRegistrySharedPtr const &resourceRegistry);
 
     HdRenderPassStateSharedPtr &_GetRenderPassState(HdRenderIndex* renderIndex);
 
@@ -175,6 +178,8 @@ struct HdxRenderTaskParams
     GfVec4f pointColor;
     float pointSize;
     bool enableLighting;
+    // Note: enableIdRender is deprecated in favor of using the primId AOV, and 
+    // will be removed as a param soon.
     bool enableIdRender;
     float alphaThreshold;
     bool enableSceneMaterials;

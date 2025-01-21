@@ -260,7 +260,6 @@ UsdImagingGL_UnitTestGLDrawing::UsdImagingGL_UnitTestGLDrawing()
     , _testLighting(false)
     , _sceneLights(false)
     , _cameraLight(false)
-    , _testIdRender(false)
     , _enableSceneMaterials(true)
     , _unloadedAsBounds(false)
     , _complexity(1.0f)
@@ -420,7 +419,7 @@ static void Usage(int argc, char *argv[])
 {
     static const char usage[] =
 "%s [-stage filePath] [-write filePath]\n"
-"                           [-offscreen] [-lighting] [-idRender]\n"
+"                           [-offscreen] [-lighting]\n"
 "                           [-disableSceneMaterials]\n"
 "                           [-camera pathToCamera]\n"
 "                           [-complexity complexity]\n"
@@ -447,7 +446,6 @@ static void Usage(int argc, char *argv[])
 "  -sceneLights        use in combination with -lighting to utilize the lights \n"
 "                      defined in the scene\n"
 "  -camLight           use a single camera light\n"
-"  -idRender           ID rendering\n"
 "  -disableSceneMaterials\n"
 "                      Disable scene materials\n"
 "  -complexity complexity\n"
@@ -636,9 +634,6 @@ UsdImagingGL_UnitTestGLDrawing::_Parse(int argc, char *argv[], _Args* args)
         else if (strcmp(argv[i], "-camera") == 0) {
             CheckForMissingArguments(i, 1, argc, argv);
             _cameraPath = argv[++i];
-        }
-        else if (strcmp(argv[i], "-idRender") == 0) {
-            _testIdRender = true;
         }
         else if (strcmp(argv[i], "-disableSceneMaterials") == 0) {
             _enableSceneMaterials = false;

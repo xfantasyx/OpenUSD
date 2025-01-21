@@ -35,7 +35,7 @@
 #include "pxr/base/tf/hash.h"
 
 #include <sstream>
-#include <unordered_map>
+#include <map>
 
 #if defined(__APPLE__)
 #include <opensubdiv/osd/mtlPatchShaderSource.h>
@@ -129,6 +129,7 @@ TF_DEFINE_PRIVATE_TOKENS(
     (triangle_strip)
     (early_fragment_tests)
     (OsdPerPatchVertexBezier)
+    (interstageDrawingCoord)
 );
 
 TF_DEFINE_ENV_SETTING(HDST_ENABLE_HGI_RESOURCE_GENERATION, false,
@@ -1589,67 +1590,174 @@ HdSt_CodeGen::_GetShaderResourceLayouts(
 }
 
 void
-HdSt_CodeGen::_PlumbInterstageElements(
-    TfToken const &name,
-    TfToken const &dataType)
+HdSt_CodeGen::_PlumbInterstageElements()
 {
-    // Add resource elements to plumb interstage elements, e.g.
-    // drawingCoord and interpolated primvar through active stages.
+    // Graphics devices impose limits on the number of input/output locations
+    // available. We can quickly exceeed such limits on low spec devices if we 
+    // naively use one location per drawing coord. This is because arrays take 
+    // one location per item, regardless of the item size. This means that:
+    //   layout(location = 0) in int someCoord[gl_MaxPatchVertices]
+    // consumes as many locations (gl_MaxPatchVertices) as:
+    //   layout(location = 0) in ivec4 someCoord[gl_MaxPatchVertices]
+    // while holding 4x fewer values. Instead if we do:
+    //   layout(location = 0) in ivec4 someCoord[
+    //       divRoundUp(gl_MaxPatchVertices, 4)]
+    // and pack the coord values into the vector elements, we can use 4x fewer 
+    // locations. In practice, since we have many coord in/out fields, it's 
+    // simpler to pack across fields instead of within a field, but the idea is 
+    // the same. This means that:
+    //   flat layout(location = 0) in int someCoord1[gl_MaxPatchVertices];
+    //   flat layout(location = 1) in int someCoord2[gl_MaxPatchVertices];
+    //     < 7 more fields omitted >
+    //   flat layout(location = 9) in int someCoord10[gl_MaxPatchVertices];
+    // becomes:
+    //   flat layout(location = 0) in ivec4 someCoord1To4[gl_MaxPatchVertices];
+    //   flat layout(location = 1) in ivec4 someCoord5to8[gl_MaxPatchVertices];
+    //   flat layout(location = 2) in ivec4 someCoord8to10[gl_MaxPatchVertices];
+    // where someCoord1To4[i].x is someCoord1[i], someCoord1To4[i].y is
+    // someCoord2[i], someCoord1To4[i].z is someCoord3[i], someCoord1To4[i].w 
+    // is someCoord4[i].
+    //
+    // Ref: https://docs.vulkan.org/spec/latest/chapters/interfaces.html#interfaces-iointerfaces-locations
 
-    std::string const &baseName = name.GetString();
-    TfToken const  vs_outName( "vs_" + baseName);
-    TfToken const tcs_outName("tcs_" + baseName);
-    TfToken const tes_outName("tes_" + baseName);
-    TfToken const  gs_outName( "gs_" + baseName);
+    // This code automates such packing. It identifies fields with the same
+    // scalar type, and groups them into 4 element vectors. It also generates
+    // mapping data, so the original field can be mapped to its vector
+    // component.
 
-    // Empty token for variables with no array size
-    TfToken const noArraySize;
+    struct _ProcessedElement {
+        TfToken name;
+        TfToken dataType;
+    };
+    using _ProcessedElementVector = std::vector<_ProcessedElement>;
 
-    // Interstage variables of type "int" require "flat" interpolation
-    TfToken const &qualifier =
-        (dataType == _tokens->_int) ? _tokens->flat : _tokens->_default;
+    struct _ElementGroup {
+        TfToken commonDataType;
+        ElementVector elements;
+    };
 
-    // Vertex attrib input for VS, PTCS, PTVS
-    _resAttrib.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
-        vs_outName, noArraySize, qualifier);
+    _ProcessedElementVector processedElements;
+    std::vector<_ElementGroup> packedElementGroups;
+    std::map<TfToken, _ElementGroup> elementGroupsToFill;
+    for (auto const& element : _resInterstage) {
+        TfToken const& dataType = element.dataType;
+        if (dataType != _tokens->_int && dataType != _tokens->_float) {
+            processedElements.push_back({element.name, dataType});
+            continue;
+        }
 
-    if (_hasTCS) {
-        _resTCS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
-                vs_outName, _tokens->gl_MaxPatchVertices, qualifier);
-        _resTCS.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
-                tcs_outName, _tokens->HD_NUM_PATCH_EVAL_VERTS, qualifier);
+        // Add to an existing group, or create a new one.
+        _ElementGroup* group;
+        if (const auto iter = elementGroupsToFill.find(dataType);
+            iter != elementGroupsToFill.end()) {
+            group = &iter->second;
+        } else {
+            group = &elementGroupsToFill.try_emplace(
+                dataType, _ElementGroup{dataType}).first->second;
+        }
+
+        // When a group is full, move it to the fully packed groups list.
+        TF_VERIFY(group->elements.size() < 4);
+        group->elements.push_back(element);
+        if (group->elements.size() == 4) {
+            packedElementGroups.push_back(std::move(*group));
+            elementGroupsToFill.erase(dataType);
+        }
     }
 
-    if (_hasTES) {
-        _resTES.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
-                tcs_outName, _tokens->gl_MaxPatchVertices, qualifier);
-        _resTES.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
-                tes_outName, noArraySize, qualifier);
+    // Some groups won't be full if the number of elements is not cleanly 
+    // divisible by 4.
+    for (auto& [_, group] : elementGroupsToFill) {
+        packedElementGroups.push_back(std::move(group));
     }
 
-    // Geometry shader inputs come from previous active stage
-    if (_hasGS && _hasTES) {
-        _resGS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
-                tes_outName, _tokens->HD_NUM_PRIMITIVE_VERTS, qualifier);
-        _resGS.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
-                gs_outName, noArraySize, qualifier);
-    } else if (_hasGS) {
-        _resGS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
-                vs_outName, _tokens->HD_NUM_PRIMITIVE_VERTS, qualifier);
-        _resGS.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
-                gs_outName, noArraySize, qualifier);
+    // Generate the mapping data.
+    _resInterstagePackedMappings.clear();
+    size_t packedElementGroup = 0;
+    for (const auto& [commonDataType, elements] : packedElementGroups) {
+        std::stringstream groupNameBuffer;
+        TfToken const groupName = TfToken(
+            _tokens->interstageDrawingCoord.GetString() +
+            std::to_string(packedElementGroup++));
+
+        for (size_t i = 0; i < elements.size(); i++) {
+            _PackedResourceMapping mapping;
+            mapping.groupName = groupName;
+            mapping.component = '[' + std::to_string(i) + ']';
+            _resInterstagePackedMappings.try_emplace(
+                elements[i].name.GetString(), std::move(mapping));
+        }
+
+        if (commonDataType == _tokens->_int) {
+            processedElements.push_back({groupName, _tokens->ivec4});
+        } else if (commonDataType == _tokens->_float) {
+            processedElements.push_back({groupName, _tokens->vec4});
+        } else {
+            TF_CODING_ERROR("Invalid element group data type");
+        }
     }
 
-    // Fragment shader inputs come from previous active stage
-    if (_hasGS) {
-        _resFS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
-                gs_outName, noArraySize, qualifier);
-    } else if (_hasTES) {
-        _resFS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
-                tes_outName, noArraySize, qualifier);
-    } else {
-        _resFS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
-                vs_outName, noArraySize, qualifier);
+    for (auto const& [name, dataType] : processedElements) {
+        bool const isInteger = (dataType == _tokens->ivec4);
+        
+        // Add resource elements to plumb interstage elements, e.g.
+        // drawingCoord and interpolated primvar through active stages.
+
+        std::string const &baseName = name.GetString();
+        TfToken const  vs_outName( "vs_" + baseName);
+        TfToken const tcs_outName("tcs_" + baseName);
+        TfToken const tes_outName("tes_" + baseName);
+        TfToken const  gs_outName( "gs_" + baseName);
+
+        // Empty token for variables with no array size
+        TfToken const noArraySize;
+
+        // Interstage variables of base type "int" require "flat" interpolation
+        TfToken const &qualifier = isInteger ?
+            _tokens->flat : _tokens->_default;
+
+        // Vertex attrib input for VS, PTCS, PTVS
+        _resAttrib.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
+            vs_outName, noArraySize, qualifier);
+
+        if (_hasTCS) {
+            _resTCS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
+                    vs_outName, _tokens->gl_MaxPatchVertices, qualifier);
+            _resTCS.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
+                    tcs_outName, _tokens->HD_NUM_PATCH_EVAL_VERTS, qualifier);
+        }
+
+        if (_hasTES) {
+            _resTES.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
+                    tcs_outName, _tokens->gl_MaxPatchVertices, qualifier);
+            _resTES.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
+                    tes_outName, noArraySize, qualifier);
+        }
+
+        // Geometry shader inputs come from previous active stage
+        if (_hasGS && _hasTES) {
+            _resGS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
+                    tes_outName, _tokens->HD_NUM_PRIMITIVE_VERTS, qualifier);
+            _resGS.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
+                    gs_outName, noArraySize, qualifier);
+        } else if (_hasGS) {
+            _resGS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
+                    vs_outName, _tokens->HD_NUM_PRIMITIVE_VERTS, qualifier);
+            _resGS.emplace_back(InOut::STAGE_OUT, Kind::VALUE, dataType,
+                    gs_outName, noArraySize, qualifier);
+        }
+
+        // Fragment shader inputs come from previous active stage
+        if (_hasGS) {
+            _resFS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
+                    gs_outName, noArraySize, qualifier);
+        } else if (_hasTES) {
+            _resFS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
+                    tes_outName, noArraySize, qualifier);
+        } else {
+            _resFS.emplace_back(InOut::STAGE_IN, Kind::VALUE, dataType,
+                    vs_outName, noArraySize, qualifier);
+        }
     }
 }
 
@@ -2500,11 +2608,6 @@ HdSt_CodeGen::_CompileWithGeneratedGLSLResources(
     // Generator assigns attribute and binding locations
     _ResourceGenerator resourceGen;
 
-    // Create additional resource elements needed by interstage elements
-    for (auto const &element : _resInterstage) {
-        _PlumbInterstageElements(element.name, element.dataType);
-    }
-
     // create GLSL program.
     HdStGLSLProgramSharedPtr glslProgram =
         std::make_shared<HdStGLSLProgram>(HdTokens->drawingShader, registry);
@@ -2695,12 +2798,6 @@ HdSt_CodeGen::_CompileWithGeneratedHgiResources(
 {
     // Generator assigns attribute and binding locations
     _ResourceGenerator resourceGen;
-
-    // Create additional resource elements needed by interstage elements.
-    // For compute-only shaders, we don't have a HdSt_GeometricShader.
-    for (auto const &element : _resInterstage) {
-        _PlumbInterstageElements(element.name, element.dataType);
-    }
 
     // create GLSL program.
     HdStGLSLProgramSharedPtr glslProgram =
@@ -4104,58 +4201,82 @@ static void _EmitFVarAccessor(
         << " { return HdGet_" << name << "(0); }\n";
 }
 
-// Helper function to generate the implementation of "GetDrawingCoord()".
-static void
-_GetDrawingCoord(std::stringstream &ss,
-                 std::vector<std::string> const &drawingCoordParams,
-                 int const instanceIndexWidth,
-                 char const *inputPrefix,
-                 char const *inArraySize)
+HdSt_CodeGen::_PackedResourceMapping
+HdSt_CodeGen::_GetDrawingCoordMapping(std::string const& name)
+{
+    // Given a drawing coord un-prefixed name, return a mapping to
+    // a component in a vector of packed interstage drawing coords.
+    if (const auto iter = _resInterstagePackedMappings.find("dc_" + name);
+        iter != _resInterstagePackedMappings.end())
+    {
+        return iter->second;
+    }
+
+    return {TfToken(name), TfToken()};
+}
+
+void
+HdSt_CodeGen::_GetDrawingCoord(
+    std::stringstream &ss,
+    std::vector<std::string> const &drawingCoordParams,
+    int instanceIndexWidth,
+    char const *inputPrefix,
+    char const *inArraySize)
 {
     ss << "hd_drawingCoord GetDrawingCoord() { \n"
        << "  hd_drawingCoord dc; \n";
 
     for (std::string const & param : drawingCoordParams) {
+        const auto [groupName, component] = _GetDrawingCoordMapping(param);
+
         ss << "  dc." << param
-           << " = " << inputPrefix << param << inArraySize << ";\n";
+           << " = " << inputPrefix << groupName << inArraySize << component
+           << ";\n";
     }
     for(int i = 0; i < instanceIndexWidth; ++i) {
-        ss << "  dc.instanceIndex[" << std::to_string(i) << "]"
-           << " = " << inputPrefix
-           << "instanceIndexI" << std::to_string(i) << inArraySize << ";\n";
+        const auto [groupName, component] = _GetDrawingCoordMapping(
+            "instanceIndexI" + std::to_string(i));
+        ss << "  dc.instanceIndex[" << i << "]"
+           << " = " << inputPrefix << groupName << inArraySize << component
+           << ";\n";
     }
     for(int i = 0; i < instanceIndexWidth-1; ++i) {
-        ss << "  dc.instanceCoords[" << std::to_string(i) << "]"
-           << " = " << inputPrefix
-           << "instanceCoordsI" << std::to_string(i) << inArraySize << ";\n";
+        const auto [groupName, component] = _GetDrawingCoordMapping(
+            "instanceCoordsI" + std::to_string(i));
+        ss << "  dc.instanceCoords[" << i << "]"
+           << " = " << inputPrefix << groupName << inArraySize << component
+           << ";\n";
     }
 
     ss << "  return dc; \n"
        << "}\n";
 }
 
-// Helper function to generate drawingCoord interstage processing.
-static void
-_ProcessDrawingCoord(std::stringstream &ss,
-                     std::vector<std::string> const &drawingCoordParams,
-                     int const instanceIndexWidth,
-                     char const *outputPrefix,
-                     char const *outArraySize)
+void
+HdSt_CodeGen::_ProcessDrawingCoord(
+    std::stringstream &ss,
+    std::vector<std::string> const &drawingCoordParams,
+    int instanceIndexWidth,
+    char const *outputPrefix,
+    char const *outArraySize)
 {
     ss << "  hd_drawingCoord dc = GetDrawingCoord();\n";
     for (std::string const & param : drawingCoordParams) {
-        ss << "  " << outputPrefix << param << outArraySize
-           << " = " << "dc." << param << ";\n";
+        const auto [groupName, component] = _GetDrawingCoordMapping(param);
+        ss << "  " << outputPrefix << groupName << outArraySize << component
+            << " = " << "dc." << param << ";\n";
     }
     for(int i = 0; i < instanceIndexWidth; ++i) {
-        std::string const index = std::to_string(i);
-        ss << "  " << outputPrefix << "instanceIndexI" << index << outArraySize
-           << " = " << "dc.instanceIndex[" << index << "]" << ";\n";
+        const auto [groupName, component] = _GetDrawingCoordMapping(
+            "instanceIndexI" + std::to_string(i));
+        ss << "  " << outputPrefix << groupName << outArraySize << component
+           << " = " << "dc.instanceIndex[" << i << "]" << ";\n";
     }
     for(int i = 0; i < instanceIndexWidth-1; ++i) {
-        std::string const index = std::to_string(i);
-        ss << "  " << outputPrefix << "instanceCoordsI" << index << outArraySize
-           << " = " << "dc.instanceCoords[" << index << "]" << ";\n";
+        const auto [groupName, component] = _GetDrawingCoordMapping(
+            "instanceCoordsI" + std::to_string(i));
+        ss << "  " << outputPrefix << groupName << outArraySize << component
+           << " = " << "dc.instanceCoords[" << i << "]" << ";\n";
     }
 }
 
@@ -4276,6 +4397,34 @@ HdSt_CodeGen::_GenerateDrawingCoord(
         "varyingCoord"
     };
 
+    const int instanceIndexWidth = _metaData->instancerNumLevels + 1;
+
+    if (!_hasCS) {
+        for (std::string const & param : drawingCoordParams) {
+            TfToken const drawingCoordParamName("dc_" + param);
+            _AddInterstageElement(&_resInterstage,
+                                  HioGlslfxResourceLayout::InOut::NONE,
+                                  /*name=*/drawingCoordParamName,
+                                  /*dataType=*/_tokens->_int);
+        }
+        for (int i = 0; i < instanceIndexWidth; ++i) {
+            TfToken const name(TfStringPrintf("dc_instanceIndexI%d", i));
+            _AddInterstageElement(&_resInterstage,
+                                  HioGlslfxResourceLayout::InOut::NONE,
+                                  /*name=*/name,
+                                  /*dataType=*/_tokens->_int);
+        }
+        for (int i = 0; i < instanceIndexWidth; ++i) {
+            TfToken const name(TfStringPrintf("dc_instanceCoordsI%d", i));
+            _AddInterstageElement(&_resInterstage,
+                                  HioGlslfxResourceLayout::InOut::NONE,
+                                  /*name=*/name,
+                                  /*dataType=*/_tokens->_int);
+        }
+
+        _PlumbInterstageElements();
+    }
+
     // common
     //
     // note: instanceCoords should be [HD_INSTANCER_NUM_LEVELS], but since
@@ -4292,8 +4441,6 @@ HdSt_CodeGen::_GenerateDrawingCoord(
     // forward declaration
     _genDecl << "FORWARD_DECL(hd_drawingCoord GetDrawingCoord());\n"
                 "FORWARD_DECL(int HgiGetBaseVertex());\n";
-
-    int instanceIndexWidth = _metaData->instancerNumLevels + 1;
 
     // vertex shader
 
@@ -4324,7 +4471,10 @@ HdSt_CodeGen::_GenerateDrawingCoord(
         // patch instance offset exists on Apple Silicon. Use primitiveCoord
         // subtracted from the primitive ID for those cases
         if (requiresBasePrimitiveOffset) {
-            primitiveID << "int GetBasePrimitiveOffset() { return vs_dc_primitiveCoord; }\n";
+            const auto [groupName, component] =
+                _GetDrawingCoordMapping("primitiveCoord");
+            primitiveID << "int GetBasePrimitiveOffset() { return vs_" 
+                        << groupName << component << "; }\n";
             _genPTCS    << "int GetBasePrimitiveOffset() { return drawingCoord0[0].w; }\n";
             _genPTVS    << "int GetBasePrimitiveOffset() { return drawingCoord0[0].w; }\n";
         } else {
@@ -4589,30 +4739,6 @@ HdSt_CodeGen::_GenerateDrawingCoord(
                << "  hd_instanceIndex r; r.indices[0] = 0; return r; }\n";
     }
 
-    if (!_hasCS) {
-        for (std::string const & param : drawingCoordParams) {
-            TfToken const drawingCoordParamName("dc_" + param);
-            _AddInterstageElement(&_resInterstage,
-                                  HioGlslfxResourceLayout::InOut::NONE,
-                                  /*name=*/drawingCoordParamName,
-                                  /*dataType=*/_tokens->_int);
-        }
-        for (int i = 0; i < instanceIndexWidth; ++i) {
-            TfToken const name(TfStringPrintf("dc_instanceIndexI%d", i));
-            _AddInterstageElement(&_resInterstage,
-                                  HioGlslfxResourceLayout::InOut::NONE,
-                                  /*name=*/name,
-                                  /*dataType=*/_tokens->_int);
-        }
-        for (int i = 0; i < instanceIndexWidth; ++i) {
-            TfToken const name(TfStringPrintf("dc_instanceCoordsI%d", i));
-            _AddInterstageElement(&_resInterstage,
-                                  HioGlslfxResourceLayout::InOut::NONE,
-                                  /*name=*/name,
-                                  /*dataType=*/_tokens->_int);
-        }
-    }
-
     _genVS   << genAttr.str();
     _genPTCS << genAttr.str();
     _genPTVS << genAttr.str();
@@ -4715,52 +4841,52 @@ HdSt_CodeGen::_GenerateDrawingCoord(
 
     // VS/PTVS from attributes
     _ProcessDrawingCoord(_procVS, drawingCoordParams, instanceIndexWidth,
-                         "vs_dc_", "");
+                         "vs_", "");
     _ProcessDrawingCoord(_procPTVSOut, drawingCoordParams, instanceIndexWidth,
-                         "vs_dc_", "");
+                         "vs_", "");
 
     // TCS from VS
     if (_hasTCS) {
         _GetDrawingCoord(_genTCS, drawingCoordParams, instanceIndexWidth,
-                "vs_dc_", "[0]");
+                "vs_", "[0]");
         _ProcessDrawingCoord(_procTCS, drawingCoordParams, instanceIndexWidth,
-                "tcs_dc_", "[gl_InvocationID]");
+                "tcs_", "[gl_InvocationID]");
     }
 
     // TES from TCS
     if (_hasTES) {
         _GetDrawingCoord(_genTES, drawingCoordParams, instanceIndexWidth,
-                "tcs_dc_", "[0]");
+                "tcs_", "[0]");
         _ProcessDrawingCoord(_procTES, drawingCoordParams, instanceIndexWidth,
-                "tes_dc_", "");
+                "tes_", "");
     }
 
     // GS
     if (_hasGS && _hasTES) {
         // from TES
         _GetDrawingCoord(_genGS, drawingCoordParams, instanceIndexWidth,
-                "tes_dc_", "[0]");
+                "tes_", "[0]");
     } else if (_hasGS) {
         // from VS
         _GetDrawingCoord(_genGS, drawingCoordParams, instanceIndexWidth,
-                "vs_dc_", "[0]");
+                "vs_", "[0]");
     }
     _ProcessDrawingCoord(_procGS, drawingCoordParams, instanceIndexWidth,
-                "gs_dc_", "");
+                "gs_", "");
 
     // FS
     if (_hasGS) {
         // from GS
         _GetDrawingCoord(_genFS, drawingCoordParams, instanceIndexWidth,
-                "gs_dc_", "");
+                "gs_", "");
     } else if (_hasTES) {
         // from TES
         _GetDrawingCoord(_genFS, drawingCoordParams, instanceIndexWidth,
-                "tes_dc_", "");
+                "tes_", "");
     } else {
         // from VS/PTVS
         _GetDrawingCoord(_genFS, drawingCoordParams, instanceIndexWidth,
-                "vs_dc_", "");
+                "vs_", "");
     }
 }
 

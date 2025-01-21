@@ -34,6 +34,9 @@ public:
     HD_API
     static void InstancerDirtyBitsToLocatorSet(TfToken const& primType,
         const HdDirtyBits bits, HdDataSourceLocatorSet *set);
+    HD_API
+    static void TaskDirtyBitsToLocatorSet(
+        const HdDirtyBits bits, HdDataSourceLocatorSet *set);
 
     // Locators to dirty bits.
     HD_API
@@ -48,7 +51,10 @@ public:
     HD_API
     static HdDirtyBits InstancerLocatorSetToDirtyBits(TfToken const& primType,
         HdDataSourceLocatorSet const& set);
-
+    HD_API
+    static HdDirtyBits TaskLocatorSetToDirtyBits(
+        HdDataSourceLocatorSet const& set);
+    
     using LocatorSetToDirtyBitsFnc =
         std::function<void(HdDataSourceLocatorSet const&, HdDirtyBits *)>;
 
