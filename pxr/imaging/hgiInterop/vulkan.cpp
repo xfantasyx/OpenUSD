@@ -14,8 +14,9 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-static const char* _vertexFullscreen =
+
 #if defined(__ANDROID__) || defined(ANDROID)
+static const char* _vertexFullscreen =
     "#version 300 es\n"
     "precision highp float;\n"
     "layout (location = 0) in vec4 position;\n"
@@ -27,6 +28,7 @@ static const char* _vertexFullscreen =
     "    uv = uvIn;\n"
     "}\n";
 #else
+static const char* _vertexFullscreen120 =
     "#version 120\n"
     "attribute vec4 position;\n"
     "attribute vec2 uvIn;\n"
@@ -38,8 +40,10 @@ static const char* _vertexFullscreen =
     "}\n";
 #endif
 
-static const char* _fragmentNoDepthFullscreen =
+
+
 #if defined(__ANDROID__) || defined(ANDROID)
+static const char* _fragmentNoDepthFullscreen =
     "#version 300 es\n"
     "precision mediump float;\n"
     "in vec2 uv;\n"
@@ -50,6 +54,18 @@ static const char* _fragmentNoDepthFullscreen =
     "    fragColor = texture(colorIn, uv);\n"
     "}\n";
 #else
+static const char* _vertexFullscreen140 =
+    "#version 140\n"
+    "in vec4 position;\n"
+    "in vec2 uvIn;\n"
+    "out vec2 uv;\n"
+    "void main(void)\n"
+    "{\n"
+    "    gl_Position = position;\n"
+    "    uv = uvIn;\n"
+    "}\n";
+
+static const char* _fragmentNoDepthFullscreen120 =
     "#version 120\n"
     "varying vec2 uv;\n"
     "uniform sampler2D colorIn;\n"
@@ -59,8 +75,8 @@ static const char* _fragmentNoDepthFullscreen =
     "}\n";
 #endif
 
-static const char* _fragmentDepthFullscreen =
 #if defined(__ANDROID__) || defined(ANDROID)
+static const char* _fragmentDepthFullscreen =
     "#version 300 es\n"
     "precision mediump float;\n"
     "in vec2 uv;\n"
@@ -74,6 +90,17 @@ static const char* _fragmentDepthFullscreen =
     "    gl_FragDepth = depth;\n"
     "}\n";
 #else
+static const char* _fragmentNoDepthFullscreen140 =
+    "#version 140\n"
+    "in vec2 uv;\n"
+    "out vec4 colorOut;\n"
+    "uniform sampler2D colorIn;\n"
+    "void main(void)\n"
+    "{\n"
+    "    colorOut = texture(colorIn, uv);\n"
+    "}\n";
+
+static const char* _fragmentDepthFullscreen120 =
     "#version 120\n"
     "varying vec2 uv;\n"
     "uniform sampler2D colorIn;\n"
@@ -86,6 +113,30 @@ static const char* _fragmentDepthFullscreen =
     "}\n";
 #endif
 
+static const char* _fragmentDepthFullscreen140 =
+    "#version 140\n"
+    "in vec2 uv;\n"
+    "out vec4 colorOut;\n"
+    "uniform sampler2D colorIn;\n"
+    "uniform sampler2D depthIn;\n"
+    "void main(void)\n"
+    "{\n"
+    "    colorOut = texture(colorIn, uv);\n"
+    "    gl_FragDepth = texture(depthIn, uv).r;\n"
+    "}\n";
+
+
+static void
+_ProcessShaderCompilationErrors(uint32_t shaderId)
+{
+    int logSize = 0;
+    glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
+    std::string errors;
+    errors.resize(logSize + 1);
+    glGetShaderInfoLog(shaderId, logSize, nullptr, errors.data());
+    TF_VERIFY(false, "Failed to compile shader: %s", errors.c_str());
+}
+
 static uint32_t
 _CompileShader(const char* src, GLenum stage)
 {
@@ -94,7 +145,10 @@ _CompileShader(const char* src, GLenum stage)
     glCompileShader(shaderId);
     GLint status;
     glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
-    TF_VERIFY(status == GL_TRUE);
+    if (status != GL_TRUE) {
+        _ProcessShaderCompilationErrors(shaderId);
+    }
+
     return shaderId;
 }
 
@@ -125,6 +179,14 @@ _CreateVertexBuffer()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     return vertexBuffer;
+}
+
+static uint32_t
+_CreateVertexArray()
+{
+    uint32_t vertexArray = 0;
+    glGenVertexArrays(1, &vertexArray);
+    return vertexArray;
 }
 
 static void
@@ -195,17 +257,39 @@ HgiInteropVulkan::HgiInteropVulkan(Hgi* hgiVulkan)
     , _prgNoDepth(0)
     , _prgDepth(0)
     , _vertexBuffer(0)
+    , _vertexArray(0)
     , _glColorTex(0)
     , _glDepthTex(0)
 {
     GarchGLApiLoad();
-    _vs = _CompileShader(_vertexFullscreen, GL_VERTEX_SHADER);
+#if defined(__ANDROID__) || defined(ANDROID)
+	_vs = _CompileShader(_vertexFullscreen, GL_VERTEX_SHADER);
     _fsNoDepth = _CompileShader(_fragmentNoDepthFullscreen, GL_FRAGMENT_SHADER);
     _fsDepth = _CompileShader(_fragmentDepthFullscreen, GL_FRAGMENT_SHADER);
+#else
+    _vs = _CompileShader(
+        GARCH_GL_VERSION_3_1 ? _vertexFullscreen140 :
+                               _vertexFullscreen120,
+        GL_VERTEX_SHADER);
+    _fsNoDepth = _CompileShader(
+        GARCH_GL_VERSION_3_1 ? _fragmentNoDepthFullscreen140 :
+                               _fragmentNoDepthFullscreen120,
+        GL_FRAGMENT_SHADER);
+    _fsDepth = _CompileShader(
+        GARCH_GL_VERSION_3_1 ? _fragmentDepthFullscreen140 :
+                               _fragmentDepthFullscreen120,
+        GL_FRAGMENT_SHADER);
+#endif
     _prgNoDepth = _LinkProgram(_vs, _fsNoDepth);
     _prgDepth = _LinkProgram(_vs, _fsDepth);
     _vertexBuffer = _CreateVertexBuffer();
-    TF_VERIFY(glGetError() == GL_NO_ERROR);
+#if !defined(__ANDROID__) && !defined(ANDROID)
+    if (GARCH_GL_VERSION_3_0) {
+        _vertexArray = _CreateVertexArray();
+    }
+#endif
+    const GLenum error = glGetError();
+    TF_VERIFY(error == GL_NO_ERROR, "OpenGL error: 0x%04x", error);
 }
 
 HgiInteropVulkan::~HgiInteropVulkan()
@@ -216,13 +300,18 @@ HgiInteropVulkan::~HgiInteropVulkan()
     glDeleteProgram(_prgNoDepth);
     glDeleteProgram(_prgDepth);
     glDeleteBuffers(1, &_vertexBuffer);
+    if (_vertexArray) {
+        glDeleteVertexArrays(1, &_vertexArray);
+    }
     if (_glColorTex) {
         glDeleteTextures(1, &_glColorTex);
     }
     if (_glDepthTex) {
         glDeleteTextures(1, &_glDepthTex);
     }
-    TF_VERIFY(glGetError() == GL_NO_ERROR);
+
+    const GLenum error = glGetError();
+    TF_VERIFY(error == GL_NO_ERROR, "OpenGL error: 0x%04x", error);
 }
 
 void
@@ -238,7 +327,10 @@ HgiInteropVulkan::CompositeToInterop(
     }
 
     // Verify there were no gl errors coming in.
-    TF_VERIFY(glGetError() == GL_NO_ERROR);
+    {
+        const GLenum error = glGetError();
+        TF_VERIFY(error == GL_NO_ERROR, "OpenGL error: 0x%04x", error);
+    }
 
     GLint restoreDrawFramebuffer = 0;
     bool doRestoreDrawFramebuffer = false;
@@ -299,6 +391,10 @@ HgiInteropVulkan::CompositeToInterop(
     // Get the current array buffer binding state
     GLint restoreArrayBuffer = 0;
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &restoreArrayBuffer);
+
+    if (_vertexArray) {
+        glBindVertexArray(_vertexArray);
+    }
 
     // Vertex attributes
     const GLint locPosition = glGetAttribLocation(prg, "position");
@@ -365,6 +461,10 @@ HgiInteropVulkan::CompositeToInterop(
     // Restore state and verify gl errors
     glDisableVertexAttribArray(locPosition);
     glDisableVertexAttribArray(locUv);
+    if (_vertexArray) {
+        glBindVertexArray(0);
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, restoreArrayBuffer);
     
     if (!blendEnabled) {
@@ -407,7 +507,10 @@ HgiInteropVulkan::CompositeToInterop(
                           restoreDrawFramebuffer);
     }
 
-    TF_VERIFY(glGetError() == GL_NO_ERROR);
+    {
+        const GLenum error = glGetError();
+        TF_VERIFY(error == GL_NO_ERROR, "OpenGL error: 0x%04x", error);
+    }
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

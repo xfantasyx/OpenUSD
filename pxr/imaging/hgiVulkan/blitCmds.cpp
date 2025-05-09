@@ -283,13 +283,15 @@ void HgiVulkanBlitCmds::CopyBufferCpuToGpu(
     if (!buffer->IsCPUStagingAddress(copyOp.cpuSourceBuffer) ||
         copyOp.sourceByteOffset != copyOp.destinationByteOffset) {
 
-        // Offset into the src buffer
-        const uint8_t* src = static_cast<const uint8_t*>(copyOp.cpuSourceBuffer) +
-            copyOp.sourceByteOffset;
+        // Offset into the src buffer.
+        const uint8_t* const src =
+            static_cast<const uint8_t*>(copyOp.cpuSourceBuffer) +
+                copyOp.sourceByteOffset;
 
         // Offset into the dst buffer.
-        uint8_t* dst = static_cast<uint8_t*>(buffer->GetCPUStagingAddress()) +
-            copyOp.destinationByteOffset;
+        uint8_t* const dst =
+            static_cast<uint8_t*>(buffer->GetCPUStagingAddress()) +
+                copyOp.destinationByteOffset;
 
         memcpy(dst, src, copyOp.byteSize);
     }

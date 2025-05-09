@@ -26,9 +26,9 @@ find_dependency(tbb REQUIRED)
 if(@PXR_ENABLE_PYTHON_SUPPORT@)
 
     if (NOT DEFINED Python3_VERSION)
-        find_package(Python3 "@Python3_VERSION@" EXACT COMPONENTS Development REQUIRED)
+        find_dependency(Python3 "@Python3_VERSION@" EXACT COMPONENTS Development)
     else()
-        find_package(Python3 COMPONENTS Development REQUIRED)
+        find_dependency(Python3 COMPONENTS Development)
     endif()
 
     if(NOT TARGET PYTHON::PYTHON)
@@ -40,6 +40,20 @@ if(@PXR_ENABLE_PYTHON_SUPPORT@)
     endif()
 
     
+endif()
+
+if (NOT DEFINED PXR_FIND_TBB_IN_CONFIG)
+    set(PXR_FIND_TBB_IN_CONFIG "@PXR_FIND_TBB_IN_CONFIG@")
+endif()
+if (PXR_FIND_TBB_IN_CONFIG)
+    find_dependency(TBB @TBB_VERSION@ CONFIG)
+endif()
+
+if (NOT DEFINED PXR_FIND_OPENSUBDIV_IN_CONFIG)
+    set(PXR_FIND_OPENSUBDIV_IN_CONFIG "@PXR_FIND_OPENSUBDIV_IN_CONFIG@")
+endif()
+if (PXR_FIND_OPENSUBDIV_IN_CONFIG)
+    find_dependency(OpenSubdiv @OpenSubdiv_VERSION@ CONFIG)
 endif()
 
 # If MaterialX support was enabled for this USD build, try to find the
@@ -140,6 +154,7 @@ if(@PXR_ENABLE_VULKAN_SUPPORT@)
             )
         endif()
     endif()
+    find_dependency(Imath)
 endif()
 
 include("${PXR_CMAKE_DIR}/cmake/pxrTargets.cmake")
