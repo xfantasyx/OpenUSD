@@ -255,7 +255,7 @@ private:
     // Misc state.
     std::recursive_mutex _mutex;
 
-    // Subscription state.
+    // EventSubscription state.
     _LibraryNameMap _libraryNameMap;
     set<TypeName> _subscriptions;
     list<TypeName> _orderedSubscriptions;

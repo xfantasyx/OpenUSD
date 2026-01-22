@@ -12,10 +12,12 @@
 // OS
 //
 #if defined(__ANDROID__) || defined(ANDROID)
-    #define ARCH_OS_ANDROID
-    #define ARCH_OS_LINUX
+#define ARCH_OS_ANDROID
+#define ARCH_OS_LINUX
+#elif defined(__EMSCRIPTEN__)
+#define ARCH_OS_WASM_VM
 #elif defined(__linux__)
-    #define ARCH_OS_LINUX
+#define ARCH_OS_LINUX
 #elif defined(__APPLE__)
 #include "TargetConditionals.h"
 #define ARCH_OS_DARWIN
@@ -48,8 +50,10 @@
 //
 
 #if defined(__x86_64__) || defined(__aarch64__) || defined(_M_X64) || \
-    defined(_M_ARM64)
+    defined(_M_ARM64) || defined(__wasm64__)
 #define ARCH_BITS_64
+#elif defined(__wasm32__)
+#define ARCH_BITS_32
 #else
 #error "Unsupported architecture.  x86_64 or ARM64 required."
 #endif

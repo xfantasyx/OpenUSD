@@ -44,14 +44,6 @@ if(PXR_ENABLE_PYTHON_SUPPORT)
         set(PYTHON_VERSION_MAJOR "${${package}_VERSION_MAJOR}")
         set(PYTHON_VERSION_MINOR "${${package}_VERSION_MINOR}")
 
-        # Convert paths to CMake path format on Windows to avoid string parsing
-        # issues when we pass PYTHON_EXECUTABLE or PYTHON_INCLUDE_DIRS to
-        # pxr_library or other functions.
-        if(WIN32)
-            file(TO_CMAKE_PATH ${PYTHON_EXECUTABLE} PYTHON_EXECUTABLE)
-            file(TO_CMAKE_PATH ${PYTHON_INCLUDE_DIRS} PYTHON_INCLUDE_DIRS)
-        endif()
-
         # PXR_PY_UNDEFINED_DYNAMIC_LOOKUP might be explicitly set when 
         # packaging wheels, or when cross compiling to a Python environment 
         # that is not the current interpreter environment.
@@ -100,18 +92,38 @@ else()
     endif()
 endif()
 
+# Convert paths to CMake path format on Windows to avoid string parsing
+# issues when we pass PYTHON_EXECUTABLE or PYTHON_INCLUDE_DIRS to
+# pxr_library or other functions.
+if(WIN32)
+    if(PYTHON_EXECUTABLE)
+        file(TO_CMAKE_PATH ${PYTHON_EXECUTABLE} PYTHON_EXECUTABLE)
+    endif()
+
+    if(PYTHON_INCLUDE_DIRS)
+        file(TO_CMAKE_PATH ${PYTHON_INCLUDE_DIRS} PYTHON_INCLUDE_DIRS)
+    endif()
+endif()
 
 # --TBB
-find_package(TBB CONFIG)
-if(TBB_DIR)
-    # Found in CONFIG mode.
-    set(TBB_tbb_LIBRARY TBB::tbb)
-    set(PXR_FIND_TBB_IN_CONFIG ON)
+if (DEFINED PXR_FIND_TBB_IN_CONFIG)
+    if (PXR_FIND_TBB_IN_CONFIG)
+        find_package(TBB CONFIG REQUIRED COMPONENTS tbb)
+    else()
+        find_package(TBB REQUIRED COMPONENTS tbb)
+    endif()
 else()
-    find_package(TBB REQUIRED COMPONENTS tbb)
-    set(PXR_FIND_TBB_IN_CONFIG OFF)
+    # Set PXR_FIND_TBB_IN_CONFIG appropriately so that downstream
+    # pxrConfig knows how TBB was found and appropriately encodes the 
+    # dependency.
+    find_package(TBB CONFIG COMPONENTS tbb)
+    if (TBB_FOUND)
+        set(PXR_FIND_TBB_IN_CONFIG ON)
+    else()
+        find_package(TBB REQUIRED COMPONENTS tbb)
+        set(PXR_FIND_TBB_IN_CONFIG OFF)
+    endif()
 endif()
-add_definitions(${TBB_DEFINITIONS})
 
 
 if(NOT TBB_tbb_LIBRARY)
@@ -286,45 +298,11 @@ if (PXR_BUILD_IMAGING)
         else()
             message(STATUS "Enabling experimental feature Vulkan support")
             if (EXISTS $ENV{VULKAN_SDK})
-                # Prioritize the VULKAN_SDK includes and packages before any system
-                # installed headers. This is to prevent linking against older SDKs
-                # that may be installed by the OS.
-                # XXX This is fixed in cmake 3.18+
-                include_directories(BEFORE SYSTEM $ENV{VULKAN_SDK} $ENV{VULKAN_SDK}/include $ENV{VULKAN_SDK}/lib $ENV{VULKAN_SDK}/source)
-                set(ENV{PATH} "$ENV{VULKAN_SDK}:$ENV{VULKAN_SDK}/include:$ENV{VULKAN_SDK}/lib:$ENV{VULKAN_SDK}/source:$ENV{PATH}")
-                find_package(Vulkan REQUIRED)
-                list(APPEND VULKAN_LIBS Vulkan::Vulkan)
-
-                # Find the extra vulkan libraries we need
-                # set(EXTRA_VULKAN_LIBS shaderc_combined)
-                # if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-                #     set(EXTRA_VULKAN_LIBS shaderc_combinedd)
-                # endif()
-                # foreach(EXTRA_LIBRARY ${EXTRA_VULKAN_LIBS})
-                #     find_library("${EXTRA_LIBRARY}_PATH" NAMES "${EXTRA_LIBRARY}" PATHS $ENV{VULKAN_SDK}/lib)
-                #     list(APPEND VULKAN_LIBS "${${EXTRA_LIBRARY}_PATH}")
-                # endforeach()
-
-                if(NOT TARGET shaderc_combined)
-                    find_library(shaderc_combined_release_lib_path NAMES "shaderc_combined" PATHS $ENV{VULKAN_SDK}/lib)
-                    find_library(shaderc_combined_debug_lib_path NAMES "shaderc_combinedd" PATHS $ENV{VULKAN_SDK}/lib)
-
-                    add_library(shaderc_combined STATIC IMPORTED)
-                    set_target_properties(shaderc_combined PROPERTIES
-                    IMPORTED_LOCATION_RELEASE "${shaderc_combined_release_lib_path}"
-                    IMPORTED_LOCATION_DEBUG "${shaderc_combined_debug_lib_path}"
-                    IMPORTED_LOCATION_RELWITHDEBINFO "${shaderc_combined_release_lib_path}"
-                    )
-                endif()
-
-                # get_target_property(test_vulkan_shader_dbg_lib shaderc_combined IMPORTED_IMPLIB_DEBUG)
-
-                list(APPEND VULKAN_LIBS shaderc_combined)
-
-                # message(FATAL_ERROR "VULKAN_LIBS=${VULKAN_LIBS}")
+                find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
+                list(APPEND VULKAN_LIBS Vulkan::Vulkan Vulkan::shaderc_combined)
 
                 # Find the OS specific libs we need
-                if (UNIX AND NOT APPLE AND NOT ANDROID)
+                if (UNIX AND NOT APPLE)
                     find_package(X11 REQUIRED)
                     list(APPEND VULKAN_LIBS ${X11_LIBRARIES})
                 elseif (WIN32)
@@ -332,11 +310,44 @@ if (PXR_BUILD_IMAGING)
                 endif()
 
                 add_definitions(-DPXR_VULKAN_SUPPORT_ENABLED)
-                # add_definitions(-DVMA_VULKAN_VERSION=1001000)
-                
             else()
                 message(FATAL_ERROR "VULKAN_SDK not valid")
             endif()
+        #########################
+            # message(STATUS "Enabling experimental feature Vulkan support")
+            # if (EXISTS $ENV{VULKAN_SDK})
+            #     find_package(Vulkan REQUIRED)
+            #     list(APPEND VULKAN_LIBS Vulkan::Vulkan)
+
+            #     if(NOT TARGET shaderc_combined)
+            #         find_library(shaderc_combined_release_lib_path NAMES "shaderc_combined" PATHS $ENV{VULKAN_SDK}/lib)
+            #         find_library(shaderc_combined_debug_lib_path NAMES "shaderc_combinedd" PATHS $ENV{VULKAN_SDK}/lib)
+
+            #         add_library(shaderc_combined STATIC IMPORTED)
+            #         set_target_properties(shaderc_combined PROPERTIES
+            #         IMPORTED_LOCATION_RELEASE "${shaderc_combined_release_lib_path}"
+            #         IMPORTED_LOCATION_DEBUG "${shaderc_combined_debug_lib_path}"
+            #         IMPORTED_LOCATION_RELWITHDEBINFO "${shaderc_combined_release_lib_path}"
+            #         )
+            #     endif()
+
+
+            #     list(APPEND VULKAN_LIBS shaderc_combined)
+
+            #     # Find the OS specific libs we need
+            #     if (UNIX AND NOT APPLE AND NOT ANDROID)
+            #         find_package(X11 REQUIRED)
+            #         list(APPEND VULKAN_LIBS ${X11_LIBRARIES})
+            #     elseif (WIN32)
+            #         # No extra libs required
+            #     endif()
+
+            #     add_definitions(-DPXR_VULKAN_SUPPORT_ENABLED)
+            #     # add_definitions(-DVMA_VULKAN_VERSION=1001000)
+                
+            # else()
+            #     message(FATAL_ERROR "VULKAN_SDK not valid")
+            # endif()
         endif()
         
     endif()

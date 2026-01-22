@@ -13,6 +13,7 @@ pxr_library(usdviewq
         hd
 
     PUBLIC_CLASSES
+        debugCodes
         hydraObserver
         utils
         
@@ -60,11 +61,13 @@ pxr_library(usdviewq
         qt.py
         rootDataModel.py
         selectionDataModel.py
+        splineViewer.py
         viewSettingsDataModel.py
         freeCamera.py
         debugFlagsWidget.py
         configController.py
         usdviewstyle.qss
+        validationWidget.py
 
     PYSIDE_UI_FILES
         mainWindowUI.ui
@@ -82,12 +85,12 @@ pxr_library(usdviewq
 
 install(DIRECTORY
     icons
-    DESTINATION lib/python/pxr/Usdviewq
+    DESTINATION ${PXR_INSTALL_LIB_DIR}/python/pxr/Usdviewq
 )
 
 install(DIRECTORY
     fonts
-    DESTINATION lib/python/pxr/Usdviewq
+    DESTINATION ${PXR_INSTALL_LIB_DIR}/python/pxr/Usdviewq
 )
 
 pxr_test_scripts(
