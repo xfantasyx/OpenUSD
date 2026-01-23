@@ -85,12 +85,12 @@ pxr_library(usdviewq
 
 install(DIRECTORY
     icons
-    DESTINATION lib/python/pxr/Usdviewq
+    DESTINATION ${PXR_INSTALL_LIB_DIR}/python/pxr/Usdviewq
 )
 
 install(DIRECTORY
     fonts
-    DESTINATION lib/python/pxr/Usdviewq
+    DESTINATION ${PXR_INSTALL_LIB_DIR}/python/pxr/Usdviewq
 )
 
 pxr_test_scripts(

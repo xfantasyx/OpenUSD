@@ -77,11 +77,11 @@ function(add_py_dll_link_test)
         SUFFIX ".pyd"
         OUTPUT_NAME ${module_filename}
     )
-    target_include_directories(testTfPyDllLinkModule
-        SYSTEM
-        PRIVATE
-            ${PYTHON_INCLUDE_DIRS}
-    )
+    # target_include_directories(testTfPyDllLinkModule
+    #     SYSTEM
+    #     PRIVATE
+    #         ${PYTHON_INCLUDE_DIRS}
+    # )
 
     target_link_libraries(testTfPyDllLinkModule PRIVATE ${PYTHON_LIBRARIES} testTfPyDllLinkImplementation)
 

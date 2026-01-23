@@ -30,7 +30,7 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
 endif()
 if (PXR_ENABLE_PTEX_SUPPORT)
     list(APPEND optionalLibs ${PTEX_LIBRARY})
-    list(APPEND optionalIncludeDirs ${PTEX_INCLUDE_DIR})
+    # list(APPEND optionalIncludeDirs ${PTEX_INCLUDE_DIR})
     list(APPEND optionalPublicClasses ptexMipmapTextureLoader)
 endif()
 
