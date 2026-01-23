@@ -63,6 +63,10 @@ else()
     _add_property(IMPORTED_LOCATION "@tbb_IMPORTED_LOCATION@")
 endif()
 
+if (@PXR_ENABLE_VULKAN_SUPPORT@)
+    find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
+endif()
+
 if (NOT DEFINED PXR_FIND_OPENSUBDIV_IN_CONFIG)
     set(PXR_FIND_OPENSUBDIV_IN_CONFIG "@PXR_FIND_OPENSUBDIV_IN_CONFIG@")
 endif()
